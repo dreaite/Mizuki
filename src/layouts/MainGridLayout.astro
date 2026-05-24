@@ -21,6 +21,7 @@ import {
 	getTransparencyClass,
 	shouldEnableTransparency,
 } from "../utils/grid-layout-utils";
+import { getLocaleSwitchPaths } from "../utils/locale-switch-utils";
 import { widgetManager } from "../utils/widget-manager";
 import Layout from "./Layout.astro";
 import GridScripts from "./partials/GridScripts.astro";
@@ -89,6 +90,10 @@ const transparentClass = getTransparencyClass(shouldEnable);
 
 // 布局模式
 const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
+const localeSwitchPaths = await getLocaleSwitchPaths(
+	Astro.url.pathname + Astro.url.search,
+	postSlug,
+);
 ---
 
 <Layout
@@ -126,7 +131,7 @@ const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
 			id="navbar-wrapper"
 			class="pointer-events-auto sticky top-0 transition-all"
 		>
-			<Navbar />
+			<Navbar localeSwitchPaths={localeSwitchPaths} />
 		</div>
 	</div>
 
@@ -216,6 +221,7 @@ const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
 				<main
 					id="swup-container"
 					class={`${mainContentClass} transition-main`}
+					data-locale-switch-paths={JSON.stringify(localeSwitchPaths)}
 				>
 					<div
 						id="content-wrapper"
@@ -239,7 +245,10 @@ const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
 				</div>
 			</div>
 
-			<FloatingControls headings={headings} />
+			<FloatingControls
+				headings={headings}
+				localeSwitchPaths={localeSwitchPaths}
+			/>
 		</div>
 	</div>
 

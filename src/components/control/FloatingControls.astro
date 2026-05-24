@@ -2,16 +2,19 @@
 import type { MarkdownHeading } from "astro";
 
 import { musicPlayerConfig, siteConfig } from "../../config";
+import type { LocaleSwitchPathMap } from "../../utils/locale-switch-utils";
 import FloatingTOC from "../features/toc/FloatingTOC.astro";
 import BackToHome from "./BackToHome.astro";
 import BackToTop from "./BackToTop.astro";
+import FloatingLanguageSwitch from "./FloatingLanguageSwitch.astro";
 import MusicFabButton from "./MusicFabButton.svelte";
 
 interface Props {
 	headings?: MarkdownHeading[];
+	localeSwitchPaths?: LocaleSwitchPathMap;
 }
 
-const { headings = [] } = Astro.props;
+const { headings = [], localeSwitchPaths = {} } = Astro.props;
 ---
 
 <div class="floating-controls-container">
@@ -31,6 +34,9 @@ const { headings = [] } = Astro.props;
 			</div>
 		)
 	}
+	<div class="floating-control-item" data-control-key="language">
+		<FloatingLanguageSwitch localeSwitchPaths={localeSwitchPaths} />
+	</div>
 	<div class="floating-control-item" data-control-key="home">
 		<BackToHome />
 	</div>
@@ -92,6 +98,7 @@ const { headings = [] } = Astro.props;
 	}
 
 	:global(html.fab-visibility-locked #floating-toc-btn.fab-lock-visible),
+	:global(html.fab-visibility-locked #floating-language-btn.fab-lock-visible),
 	:global(html.fab-visibility-locked #back-to-home-btn.fab-lock-visible),
 	:global(html.fab-visibility-locked #back-to-top-btn.fab-lock-visible) {
 		min-width: var(--fab-button-size) !important;
@@ -114,6 +121,9 @@ const { headings = [] } = Astro.props;
 		html:not(.dark).fab-visibility-locked #floating-toc-btn.fab-lock-visible
 	),
 	:global(
+		html:not(.dark).fab-visibility-locked #floating-language-btn.fab-lock-visible
+	),
+	:global(
 		html:not(.dark).fab-visibility-locked #back-to-home-btn.fab-lock-visible
 	),
 	:global(
@@ -123,6 +133,7 @@ const { headings = [] } = Astro.props;
 	}
 
 	:global(html.fab-visibility-locked #floating-toc-btn.fab-lock-visible.hide),
+	:global(html.fab-visibility-locked #floating-language-btn.fab-lock-visible.hide),
 	:global(html.fab-visibility-locked #back-to-home-btn.fab-lock-visible.hide),
 	:global(html.fab-visibility-locked #back-to-top-btn.fab-lock-visible.hide) {
 		transform: scale(1) !important;
@@ -139,6 +150,7 @@ const { headings = [] } = Astro.props;
 	}
 
 	:global(html.fab-visibility-locked #floating-toc-btn.fab-lock-visible svg),
+	:global(html.fab-visibility-locked #floating-language-btn.fab-lock-visible svg),
 	:global(html.fab-visibility-locked #back-to-home-btn.fab-lock-visible svg),
 	:global(html.fab-visibility-locked #back-to-top-btn.fab-lock-visible svg) {
 		opacity: 1 !important;
@@ -231,6 +243,7 @@ const { headings = [] } = Astro.props;
 		let visibilityUpdateScheduled = false;
 		const controlButtonIds = [
 			"floating-toc-btn",
+			"floating-language-btn",
 			"back-to-home-btn",
 			"back-to-top-btn",
 		];
@@ -258,6 +271,8 @@ const { headings = [] } = Astro.props;
 
 				if (key === "toc") {
 					visible = isButtonVisible("floating-toc-btn");
+				} else if (key === "language") {
+					visible = isButtonVisible("floating-language-btn");
 				} else if (key === "home") {
 					visible = isButtonVisible("back-to-home-btn");
 				} else if (key === "top") {
@@ -327,6 +342,7 @@ const { headings = [] } = Astro.props;
 		function initFloatingControlVisibility() {
 			updateFloatingControlVisibility();
 			observeFloatingControlButton("floating-toc-btn");
+			observeFloatingControlButton("floating-language-btn");
 			observeFloatingControlButton("back-to-home-btn");
 			observeFloatingControlButton("back-to-top-btn");
 		}
@@ -342,6 +358,8 @@ const { headings = [] } = Astro.props;
 				const id =
 					key === "toc"
 						? "floating-toc-btn"
+						: key === "language"
+							? "floating-language-btn"
 						: key === "home"
 							? "back-to-home-btn"
 							: key === "top"

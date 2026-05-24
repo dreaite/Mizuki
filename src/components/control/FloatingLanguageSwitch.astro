@@ -1,0 +1,316 @@
+---
+import FloatingButton from "@components/common/FloatingButton.astro";
+import { Icon } from "astro-icon/components";
+
+import {
+	SUPPORTED_LOCALES,
+	getCurrentLocalePath,
+	getDefaultLocaleInfo,
+	getLocaleSwitchPath,
+} from "../../i18n/locale";
+import type { LocaleSwitchPathMap } from "../../utils/locale-switch-utils";
+
+interface Props {
+	localeSwitchPaths?: LocaleSwitchPathMap;
+}
+
+const { localeSwitchPaths = {} } = Astro.props as Props;
+const currentLocalePath = getCurrentLocalePath();
+const defaultLocalePath = getDefaultLocaleInfo().path;
+const languageOptions = SUPPORTED_LOCALES.map((locale) => ({
+	...locale,
+	href:
+		localeSwitchPaths[locale.path] ??
+		getLocaleSwitchPath(Astro.url.pathname + Astro.url.search, locale.path),
+	active: locale.path === currentLocalePath,
+}));
+---
+
+<div
+	class="floating-language-switch"
+	data-floating-language-switch
+	data-default-locale={defaultLocalePath}
+>
+	<FloatingButton
+		id="floating-language-btn"
+		icon="material-symbols:translate"
+		ariaLabel="Language"
+	/>
+	<div
+		id="floating-language-menu"
+		class="floating-language-menu"
+		aria-hidden="true"
+	>
+		{
+			languageOptions.map((locale) => (
+				<a
+					href={locale.href}
+					class:list={[
+						"floating-language-menu-item",
+						{ "floating-language-menu-item-active": locale.active },
+					]}
+					aria-current={locale.active ? "page" : null}
+					data-no-swup
+					data-floating-language-option
+					data-locale-path={locale.path}
+				>
+					<span>{locale.label}</span>
+					<Icon
+						name="material-symbols:check-rounded"
+						class:list={[
+							"floating-language-check",
+							{ hidden: !locale.active },
+						]}
+						data-floating-language-check
+					/>
+				</a>
+			))
+		}
+	</div>
+</div>
+
+<style>
+	.floating-language-switch {
+		position: relative;
+		pointer-events: auto;
+	}
+
+	.floating-language-menu {
+		position: absolute;
+		right: calc(100% + 0.5rem);
+		bottom: 0;
+		width: 10rem;
+		padding: 0.375rem;
+		border-radius: 1rem;
+		background: var(--float-panel-bg);
+		border: 1px solid var(--line-color);
+		box-shadow: 0 1rem 3rem rgb(0 0 0 / 14%);
+		opacity: 0;
+		transform: translateX(0.5rem) scale(0.96);
+		transform-origin: bottom right;
+		pointer-events: none;
+		transition:
+			opacity 0.2s ease,
+			transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+		overflow: hidden;
+	}
+
+	.floating-language-switch.is-open .floating-language-menu {
+		opacity: 1;
+		transform: translateX(0) scale(1);
+		pointer-events: auto;
+	}
+
+	.floating-language-menu-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.625rem 0.75rem;
+		border-radius: 0.75rem;
+		color: rgb(0 0 0 / 75%);
+		font-weight: 700;
+		font-size: 0.875rem;
+		transition:
+			background-color 0.2s ease,
+			color 0.2s ease;
+	}
+
+	.floating-language-menu-item:hover,
+	.floating-language-menu-item-active {
+		color: var(--primary);
+		background: var(--btn-plain-bg-hover);
+	}
+
+	.floating-language-check {
+		color: var(--primary);
+		font-size: 0.875rem;
+		line-height: 1;
+	}
+
+	:global(.dark) .floating-language-menu {
+		box-shadow: none;
+	}
+
+	:global(.dark) .floating-language-menu-item {
+		color: rgb(255 255 255 / 75%);
+	}
+
+	:global(.dark) .floating-language-menu-item:hover,
+	:global(.dark) .floating-language-menu-item-active {
+		color: var(--primary);
+	}
+
+	@media (max-width: 480px) {
+		.floating-language-menu {
+			width: 9rem;
+			right: calc(100% + 0.375rem);
+			border-radius: 0.75rem;
+		}
+
+		.floating-language-menu-item {
+			padding: 0.55rem 0.65rem;
+			font-size: 0.8125rem;
+		}
+	}
+</style>
+
+<script is:inline>
+	(() => {
+		function getSwitch() {
+			return document.querySelector("[data-floating-language-switch]");
+		}
+
+		function getMenu() {
+			return document.getElementById("floating-language-menu");
+		}
+
+		function getLocalePaths() {
+			return Array.from(
+				document.querySelectorAll("[data-floating-language-option]"),
+			)
+				.map((option) => option.dataset.localePath)
+				.filter(Boolean);
+		}
+
+		function stripLocaleFromPathname(pathname) {
+			const switcher = getSwitch();
+			const defaultLocalePath =
+				switcher?.dataset.defaultLocale || "cn";
+			const localePaths = getLocalePaths();
+			const normalized = pathname.startsWith("/")
+				? pathname
+				: `/${pathname}`;
+			const segments = normalized.split("/").filter(Boolean);
+			const firstSegment = segments[0];
+
+			if (localePaths.includes(firstSegment)) {
+				let pathWithoutLocale = `/${segments.slice(1).join("/")}`;
+				if (pathWithoutLocale === "/" || pathWithoutLocale === "") {
+					pathWithoutLocale = "/";
+				} else if (
+					normalized.endsWith("/") &&
+					!pathWithoutLocale.endsWith("/")
+				) {
+					pathWithoutLocale += "/";
+				}
+				return { localePath: firstSegment, pathWithoutLocale };
+			}
+
+			return {
+				localePath: defaultLocalePath,
+				pathWithoutLocale: normalized || "/",
+			};
+		}
+
+		function getLanguageSwitchHref(targetLocalePath) {
+			const carrier = document.getElementById("swup-container");
+			const rawLocaleSwitchPaths = carrier?.dataset.localeSwitchPaths;
+			if (rawLocaleSwitchPaths) {
+				try {
+					const localeSwitchPaths = JSON.parse(rawLocaleSwitchPaths);
+					const href = localeSwitchPaths?.[targetLocalePath];
+					if (typeof href === "string" && href.length > 0) {
+						return window.location.hash && !href.includes("#")
+							? `${href}${window.location.hash}`
+							: href;
+					}
+				} catch {
+					// Fall back to generic path switching below.
+				}
+			}
+
+			const route = stripLocaleFromPathname(window.location.pathname);
+			const targetPath = `/${targetLocalePath}${
+				route.pathWithoutLocale === "/" ? "/" : route.pathWithoutLocale
+			}`;
+			return `${targetPath}${window.location.search}${window.location.hash}`;
+		}
+
+		function closeFloatingLanguageMenu() {
+			const switcher = getSwitch();
+			const menu = getMenu();
+			switcher?.classList.remove("is-open");
+			menu?.setAttribute("aria-hidden", "true");
+		}
+
+		window.toggleFloatingLanguageMenu = function () {
+			const switcher = getSwitch();
+			const menu = getMenu();
+			if (!switcher || !menu) {
+				return;
+			}
+			const isOpen = switcher.classList.toggle("is-open");
+			menu.setAttribute("aria-hidden", String(!isOpen));
+		};
+
+		function bindFloatingLanguageButton() {
+			const button = document.getElementById("floating-language-btn");
+			if (!button || button.dataset.floatingLanguageBound === "true") {
+				return;
+			}
+
+			button.dataset.floatingLanguageBound = "true";
+			button.addEventListener("click", (event) => {
+				event.stopPropagation();
+				window.toggleFloatingLanguageMenu();
+			});
+		}
+
+		function syncFloatingLanguageSwitch() {
+			const currentLocalePath = stripLocaleFromPathname(
+				window.location.pathname,
+			).localePath;
+
+			for (const option of document.querySelectorAll(
+				"[data-floating-language-option]",
+			)) {
+				if (!(option instanceof HTMLAnchorElement)) {
+					continue;
+				}
+
+				const localePath = option.dataset.localePath;
+				if (!localePath) {
+					continue;
+				}
+
+				const isActive = localePath === currentLocalePath;
+				option.href = getLanguageSwitchHref(localePath);
+				option.classList.toggle(
+					"floating-language-menu-item-active",
+					isActive,
+				);
+				if (isActive) {
+					option.setAttribute("aria-current", "page");
+				} else {
+					option.removeAttribute("aria-current");
+				}
+				option
+					.querySelector("[data-floating-language-check]")
+					?.classList.toggle("hidden", !isActive);
+			}
+		}
+
+		document.addEventListener("click", (event) => {
+			const switcher = getSwitch();
+			if (switcher && !switcher.contains(event.target)) {
+				closeFloatingLanguageMenu();
+			}
+		});
+		document.addEventListener("keydown", (event) => {
+			if (event.key === "Escape") {
+				closeFloatingLanguageMenu();
+			}
+		});
+		document.addEventListener("DOMContentLoaded", () => {
+			bindFloatingLanguageButton();
+			syncFloatingLanguageSwitch();
+		});
+		document.addEventListener("astro:page-load", () => {
+			bindFloatingLanguageButton();
+			syncFloatingLanguageSwitch();
+		});
+		bindFloatingLanguageButton();
+		syncFloatingLanguageSwitch();
+	})();
+</script>

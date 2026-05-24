@@ -9,6 +9,7 @@ import {
 	getLocaleSwitchPath,
 } from "../../../i18n/locale";
 import { i18n } from "../../../i18n/translation";
+import type { LocaleSwitchPathMap } from "../../../utils/locale-switch-utils";
 import type { LinkPreset, NavBarLink } from "../../../types/config";
 import { localizedUrl } from "../../../utils/url-utils";
 import type { NavMenuPanelProps, ProcessedNavBarLink } from "./types";
@@ -38,9 +39,9 @@ const getLocalizedName = (name: string): string => {
 	return name;
 };
 
-const processedLinks: ProcessedNavBarLink[] = (
-	Astro.props as NavMenuPanelProps
-).links.map(
+const { links, localeSwitchPaths = {} } = Astro.props as NavMenuPanelProps;
+
+const processedLinks: ProcessedNavBarLink[] = links.map(
 	(link: NavBarLink): ProcessedNavBarLink => ({
 		...link,
 		children: link.children?.map(
@@ -57,7 +58,9 @@ const processedLinks: ProcessedNavBarLink[] = (
 const currentLocalePath = getCurrentLocalePath();
 const languageOptions = SUPPORTED_LOCALES.map((locale) => ({
 	...locale,
-	href: getLocaleSwitchPath(Astro.url.pathname + Astro.url.search, locale.path),
+	href:
+		(localeSwitchPaths as LocaleSwitchPathMap)[locale.path] ??
+		getLocaleSwitchPath(Astro.url.pathname + Astro.url.search, locale.path),
 	active: locale.path === currentLocalePath,
 }));
 ---

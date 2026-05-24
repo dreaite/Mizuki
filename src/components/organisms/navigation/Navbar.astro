@@ -13,6 +13,7 @@ import {
 	isLocalizedHomePath,
 } from "../../../i18n/locale";
 import { LinkPreset, type NavBarLink } from "../../../types/config";
+import type { LocaleSwitchPathMap } from "../../../utils/locale-switch-utils";
 import { localizedUrl, url } from "../../../utils/url-utils";
 import LayoutSwitch from "../../control/LayoutSwitch.svelte";
 import ThemeSwitch from "../../control/ThemeSwitch.svelte";
@@ -23,7 +24,12 @@ import DropdownMenu from "./DropdownMenu.astro";
 import NavMenuPanel from "./NavMenuPanel.astro";
 import Search from "./Search.svelte";
 
-const className = Astro.props.class;
+interface Props {
+	class?: string;
+	localeSwitchPaths?: LocaleSwitchPathMap;
+}
+
+const { class: className, localeSwitchPaths = {} } = Astro.props as Props;
 
 // 获取导航栏透明模式配置
 const navbarTransparentMode =
@@ -132,7 +138,9 @@ const currentLocale =
 const defaultLocalePath = getDefaultLocaleInfo().path;
 const languageOptions = SUPPORTED_LOCALES.map((locale) => ({
 	...locale,
-	href: getLocaleSwitchPath(Astro.url.pathname + Astro.url.search, locale.path),
+	href:
+		localeSwitchPaths[locale.path] ??
+		getLocaleSwitchPath(Astro.url.pathname + Astro.url.search, locale.path),
 	active: locale.path === currentLocalePath,
 }));
 ---
@@ -245,7 +253,7 @@ const languageOptions = SUPPORTED_LOCALES.map((locale) => ({
                 <Icon name="material-symbols:unfold-more" class="text-[1.25rem]"></Icon>
             </button>
         </div>
-        <NavMenuPanel links={links}></NavMenuPanel>
+        <NavMenuPanel links={links} localeSwitchPaths={localeSwitchPaths}></NavMenuPanel>
         <DisplaySettings client:only="svelte"></DisplaySettings>
     </div>
 </div>
@@ -301,6 +309,24 @@ const languageOptions = SUPPORTED_LOCALES.map((locale) => ({
 	}
 
 	function getLanguageSwitchHref(targetLocalePath: string) {
+		const localeSwitchPathCarrier =
+			document.getElementById("swup-container");
+		const rawLocaleSwitchPaths =
+			localeSwitchPathCarrier?.dataset.localeSwitchPaths;
+		if (rawLocaleSwitchPaths) {
+			try {
+				const localeSwitchPaths = JSON.parse(rawLocaleSwitchPaths);
+				const href = localeSwitchPaths?.[targetLocalePath];
+				if (typeof href === "string" && href.length > 0) {
+					return window.location.hash && !href.includes("#")
+						? `${href}${window.location.hash}`
+						: href;
+				}
+			} catch {
+				// Fall back to generic path switching below.
+			}
+		}
+
 		const route = stripLocaleFromPathname(window.location.pathname);
 		const targetPath = `/${targetLocalePath}${
 			route.pathWithoutLocale === "/" ? "/" : route.pathWithoutLocale
