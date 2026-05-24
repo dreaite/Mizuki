@@ -35,10 +35,7 @@ import { licenseConfig } from "src/config";
 import { permalinkConfig } from "@/config";
 
 import { profileConfig, siteConfig } from "../config";
-import {
-	getDefaultLocaleInfo,
-	setCurrentLocaleContext,
-} from "../i18n/locale";
+import { getDefaultLocaleInfo, setCurrentLocaleContext } from "../i18n/locale";
 import { formatDateToYYYYMMDD } from "../utils/date-utils";
 
 export async function getStaticPaths() {
@@ -60,8 +57,7 @@ export async function getStaticPaths() {
 		// 优先使用自定义 permalink
 		if (hasCustomPermalink(entry)) {
 			permalink =
-				entry.data.permalink?.replace(/^\/+/, "").replace(/\/+$/, "") ??
-				null;
+				entry.data.permalink?.replace(/^\/+/, "").replace(/\/+$/, "") ?? null;
 		}
 		// 其次使用全局 permalink（如果启用）
 		else if (permalinkConfig.enable) {
@@ -118,6 +114,7 @@ const jsonLd = {
 	lang={entry.data.lang}
 	setOGTypeArticle={true}
 	postSlug={entry.id}
+	postEntry={entry}
 	headings={headings}
 >
 	<script

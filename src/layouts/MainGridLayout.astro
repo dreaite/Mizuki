@@ -8,6 +8,7 @@ import IconifyLoader from "@components/misc/IconifyLoader.astro";
 import Footer from "@components/organisms/footer/Footer.astro";
 import Navbar from "@components/organisms/navigation/Navbar.astro";
 import SideBar from "@components/widgets/sidebar/SideBar.astro";
+import type { CollectionEntry } from "astro:content";
 import type { MarkdownHeading } from "astro";
 import { Icon } from "astro-icon/components";
 
@@ -33,6 +34,7 @@ interface Props {
 	lang?: string;
 	setOGTypeArticle?: boolean;
 	postSlug?: string;
+	postEntry?: CollectionEntry<"posts">;
 	headings?: MarkdownHeading[];
 	coverImage?: string;
 }
@@ -47,6 +49,7 @@ const {
 	lang,
 	setOGTypeArticle,
 	postSlug,
+	postEntry,
 	coverImage,
 	headings = [],
 } = Astro.props;
@@ -92,7 +95,7 @@ const transparentClass = getTransparencyClass(shouldEnable);
 const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
 const localeSwitchPaths = await getLocaleSwitchPaths(
 	Astro.url.pathname + Astro.url.search,
-	postSlug,
+	postEntry ?? postSlug,
 );
 ---
 

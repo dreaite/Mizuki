@@ -7,6 +7,13 @@ import { getSortedPosts } from "./content-utils";
 import { getCanonicalPostSlugFromId } from "./post-variant-utils";
 
 export type LocaleSwitchPathMap = Partial<Record<SupportedLocalePath, string>>;
+type PostVariantSource =
+	| string
+	| {
+			id: string;
+			filePath?: string | null;
+			data?: { lang?: string | null };
+	  };
 
 function splitPath(path: string) {
 	const hashIndex = path.indexOf("#");
@@ -37,7 +44,7 @@ function localePostPath(
 
 export async function getLocaleSwitchPaths(
 	currentPath: string,
-	postSlug?: string | null,
+	post?: PostVariantSource | null,
 ): Promise<LocaleSwitchPathMap> {
 	const fallbackPaths = Object.fromEntries(
 		SUPPORTED_LOCALES.map((locale) => [
@@ -46,11 +53,14 @@ export async function getLocaleSwitchPaths(
 		]),
 	) as LocaleSwitchPathMap;
 
-	if (!postSlug) {
+	if (!post) {
 		return fallbackPaths;
 	}
 
-	const canonicalSlug = getCanonicalPostSlugFromId(postSlug);
+	const canonicalSlug =
+		typeof post === "string"
+			? getCanonicalPostSlugFromId(post)
+			: getCanonicalPostSlugFromId(post);
 	const localizedPostEntries = await Promise.all(
 		SUPPORTED_LOCALES.map(async (locale) => ({
 			locale,

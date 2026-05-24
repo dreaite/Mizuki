@@ -45,9 +45,7 @@ export const getStaticPaths = (async () => {
 			url: {
 				current: getPagePath(routePrefix, pageNumber),
 				prev:
-					pageNumber > 1
-						? getPagePath(routePrefix, pageNumber - 1)
-						: undefined,
+					pageNumber > 1 ? getPagePath(routePrefix, pageNumber - 1) : undefined,
 				next:
 					pageNumber < lastPage
 						? getPagePath(routePrefix, pageNumber + 1)
@@ -83,6 +81,7 @@ export const getStaticPaths = (async () => {
 				},
 				props: {
 					localePath: locale.localePath,
+					hasLocalePrefix: locale.hasLocalePrefix,
 					page: buildPage(
 						allBlogPosts,
 						locale.routePrefix,
@@ -99,7 +98,7 @@ export const getStaticPaths = (async () => {
 // https://github.com/withastro/astro/issues/6507#issuecomment-1489916992
 
 const { page } = Astro.props;
-setCurrentLocaleContext(Astro.props.localePath);
+setCurrentLocaleContext(Astro.props.localePath, Astro.props.hasLocalePrefix);
 
 const len = page.data.length;
 ---
