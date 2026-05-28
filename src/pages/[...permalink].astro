@@ -1,6 +1,8 @@
 ---
+import { getImage } from "astro:assets";
 import type { CollectionEntry } from "astro:content";
 import { render } from "astro:content";
+import path from "node:path";
 /**
  * 处理 permalink 的文章（包括全局 permalink 和自定义 permalink）
  * 全局 permalink 启用时，所有文章链接在根目录下生成
@@ -15,13 +17,16 @@ import {
 	LastModified,
 	PostMeta,
 	PostNavigation,
+	RandomPosts,
+	RelatedPosts,
+	ShareCard,
 } from "@components/features/posts";
 import License from "@components/misc/License.astro";
 import Markdown from "@components/misc/Markdown.astro";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
-import { getSortedPosts } from "@utils/content-utils";
+import { getRelatedPosts, getSortedPosts } from "@utils/content-utils";
 import {
 	generatePermalinkSlug,
 	hasCustomPermalink,
@@ -30,7 +35,12 @@ import {
 import { getPostPublicDescription } from "@utils/post-card-content";
 import { getFileDirFromPath } from "@utils/url-utils";
 import { Icon } from "astro-icon/components";
-import { licenseConfig } from "src/config";
+import {
+	licenseConfig,
+	randomPostsConfig,
+	relatedPostsConfig,
+	shareConfig,
+} from "src/config";
 
 import { permalinkConfig } from "@/config";
 
@@ -82,6 +92,81 @@ const { Content, headings } = await render(entry);
 
 const { remarkPluginFrontmatter } = await render(entry);
 
+const relatedPosts = relatedPostsConfig.enable
+	? await getRelatedPosts(entry, relatedPostsConfig.maxCount)
+	: [];
+
+let ogCoverUrl: string | undefined;
+let posterCoverUrl = entry.data.image;
+
+if (entry.data.image) {
+	const isLocal = !(
+		entry.data.image.startsWith("/") ||
+		entry.data.image.startsWith("http") ||
+		entry.data.image.startsWith("https") ||
+		entry.data.image.startsWith("data:")
+	);
+	if (isLocal) {
+		const basePath = getFileDirFromPath(entry.filePath || "");
+		const files = import.meta.glob<ImageMetadata>("../**", {
+			import: "default",
+		});
+		const normalizedPath = path
+			.normalize(path.join("../", basePath, entry.data.image))
+			.replace(/\\/g, "/");
+		const file = files[normalizedPath];
+		if (file) {
+			const img = await file();
+			posterCoverUrl = img.src;
+
+			const ogImage = await getImage({
+				src: img,
+				width: 1200,
+				format: "jpeg",
+				quality: 80,
+			});
+			ogCoverUrl = ogImage.src;
+		}
+	} else if (entry.data.image.startsWith("http")) {
+		ogCoverUrl = entry.data.image;
+
+		try {
+			const response = await fetch(entry.data.image);
+			const arrayBuffer = await response.arrayBuffer();
+			const base64 = Buffer.from(arrayBuffer).toString("base64");
+			const contentType = response.headers.get("content-type") || "image/jpeg";
+			posterCoverUrl = `data:${contentType};base64,${base64}`;
+		} catch {
+			posterCoverUrl = entry.data.image;
+		}
+	} else {
+		ogCoverUrl = entry.data.image;
+	}
+}
+
+let posterAvatarUrl = profileConfig.avatar;
+if (profileConfig.avatar) {
+	const isLocal = !(
+		profileConfig.avatar.startsWith("/") ||
+		profileConfig.avatar.startsWith("http") ||
+		profileConfig.avatar.startsWith("https") ||
+		profileConfig.avatar.startsWith("data:")
+	);
+	if (isLocal) {
+		const files = import.meta.glob<ImageMetadata>("../**", {
+			import: "default",
+		});
+		const normalizedPath = path
+			.normalize(path.join("../", profileConfig.avatar))
+			.replace(/\\/g, "/");
+		const file = files[normalizedPath];
+		if (file) {
+			const img = await file();
+			posterAvatarUrl = img.src;
+		}
+	}
+}
+
 // 处理加密逻辑
 const isEncrypted = !!(entry.data.encrypted && entry.data.password);
 const publicDescription = getPostPublicDescription(
@@ -116,6 +201,7 @@ const jsonLd = {
 	postSlug={entry.id}
 	postEntry={entry}
 	headings={headings}
+	coverImage={ogCoverUrl}
 >
 	<script
 		is:inline
@@ -236,23 +322,48 @@ const jsonLd = {
 						</Markdown>
 					</Encryptor>
 				) : (
-					<>
-						<Markdown class="mb-6 markdown-content onload-animation">
-							<Content />
-						</Markdown>
-						{licenseConfig.enable && (
-							<License
-								title={entry.data.title}
-								id={entry.id}
-								pubDate={entry.data.published}
-								author={entry.data.author}
-								sourceLink={entry.data.sourceLink}
-								licenseName={entry.data.licenseName}
-								licenseUrl={entry.data.licenseUrl}
-								class="mb-6 rounded-xl license-container onload-animation"
-							/>
-						)}
-					</>
+					<Markdown class="mb-6 markdown-content onload-animation">
+						<Content />
+					</Markdown>
+				)
+			}
+
+			{
+				shareConfig.enable && (
+					<ShareCard
+						class:list={[{ "encrypted-hidden": isEncrypted }]}
+						title={entry.data.title}
+						author={entry.data.author}
+						description={publicDescription}
+						pubDate={formatDateToYYYYMMDD(entry.data.published)}
+						coverImage={posterCoverUrl}
+						url={Astro.url.toString()}
+						siteTitle={siteConfig.title}
+						avatar={posterAvatarUrl}
+					/>
+				)
+			}
+
+			{
+				licenseConfig.enable && (
+					<div
+						id="license-component"
+						class:list={[
+							"encrypted-hidden-wrapper",
+							{ "encrypted-hidden": isEncrypted },
+						]}
+					>
+						<License
+							title={entry.data.title}
+							id={entry.id}
+							pubDate={entry.data.published}
+							author={entry.data.author}
+							sourceLink={entry.data.sourceLink}
+							licenseName={entry.data.licenseName}
+							licenseUrl={entry.data.licenseUrl}
+							class="mb-6 rounded-xl license-container onload-animation"
+						/>
+					</div>
 				)
 			}
 		</div>
@@ -275,4 +386,20 @@ const jsonLd = {
 		nextSlug={entry.data.prevSlug}
 		nextTitle={entry.data.prevTitle}
 	/>
+
+	{
+		(relatedPostsConfig.enable || randomPostsConfig.enable) && (
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+				{relatedPostsConfig.enable && relatedPosts.length > 0 && (
+					<RelatedPosts relatedPosts={relatedPosts} />
+				)}
+				{randomPostsConfig.enable && (
+					<RandomPosts
+						excludeIds={[entry.id]}
+						maxCount={randomPostsConfig.maxCount}
+					/>
+				)}
+			</div>
+		)
+	}
 </MainGridLayout>
