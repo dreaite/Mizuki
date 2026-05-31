@@ -47,6 +47,7 @@ import { permalinkConfig } from "@/config";
 import { profileConfig, siteConfig } from "../config";
 import { getDefaultLocaleInfo, setCurrentLocaleContext } from "../i18n/locale";
 import { formatDateToYYYYMMDD } from "../utils/date-utils";
+import { getStructuredDataImageUrl } from "../utils/seo-image";
 
 export async function getStaticPaths() {
 	const defaultLocale = getDefaultLocaleInfo();
@@ -173,6 +174,11 @@ const publicDescription = getPostPublicDescription(
 	entry.data,
 	entry.data.title,
 );
+const jsonLdImage = getStructuredDataImageUrl(
+	ogCoverUrl,
+	Astro.site,
+	siteConfig,
+);
 
 const jsonLd = {
 	"@context": "https://schema.org",
@@ -189,6 +195,7 @@ const jsonLd = {
 	inLanguage: entry.data.lang
 		? entry.data.lang.replace("_", "-")
 		: Astro.props.localePath,
+	...(jsonLdImage ? { image: [jsonLdImage] } : {}),
 };
 ---
 
