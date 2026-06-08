@@ -5,6 +5,7 @@
  *
  * 包含:
  * - Google Tag Manager (GTM)
+ * - Google Analytics 4 (GA4，可选，通过 thirdPartyAnalytics.googleAnalyticsId 配置)
  * - Microsoft Clarity (可选，通过 thirdPartyAnalytics 配置控制)
  *
  * 使用 requestIdleCallback 延迟加载以优化性能
@@ -14,6 +15,7 @@ interface Props {
 	gtmId?: string;
 	thirdPartyAnalytics?: {
 		enable: boolean;
+		googleAnalyticsId?: string;
 		clarityId?: string;
 	};
 }
@@ -25,6 +27,7 @@ const {
 
 const clarityEnable =
 	thirdPartyAnalytics.enable && thirdPartyAnalytics.clarityId;
+const googleAnalyticsId = thirdPartyAnalytics.googleAnalyticsId || "";
 ---
 
 <!-- 第三方分析脚本 - 仅在用户交互后延迟加载 -->
@@ -32,6 +35,7 @@ const clarityEnable =
 	is:inline
 	define:vars={{
 		gtmId,
+		googleAnalyticsId,
 		clarityEnable,
 		clarityId: thirdPartyAnalytics.clarityId || "",
 	}}
@@ -59,6 +63,25 @@ const clarityEnable =
 				j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
 				f.parentNode.insertBefore(j, f);
 			})(window, document, "script", "dataLayer", gtmId);
+
+			// Google Analytics 4 (仅在配置 Measurement ID 时加载)
+			if (googleAnalyticsId) {
+				const gaScript = document.createElement("script");
+				gaScript.async = true;
+				gaScript.src =
+					"https://www.googletagmanager.com/gtag/js?id=" +
+					googleAnalyticsId;
+				document.head.appendChild(gaScript);
+
+				window.dataLayer = window.dataLayer || [];
+				window.gtag =
+					window.gtag ||
+					function () {
+						window.dataLayer.push(arguments);
+					};
+				window.gtag("js", new Date());
+				window.gtag("config", googleAnalyticsId);
+			}
 
 			// Clarity (仅在启用时加载)
 			if (clarityEnable && clarityId) {

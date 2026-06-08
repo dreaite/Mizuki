@@ -554,6 +554,7 @@ export interface PageProgressBarConfig {
  * 第三方统计配置（可能影响 Lighthouse 评分）
  */
 export interface ThirdPartyAnalyticsConfig {
-	enable: boolean; // 是否启用第三方统计（Microsoft Clarity），默认关闭
+	enable: boolean; // 是否启用可选第三方统计（目前控制 Microsoft Clarity）
+	googleAnalyticsId?: string; // Google Analytics 4 Measurement ID，例如 G-XXXXXXXXXX
 	clarityId?: string; // Clarity 项目 ID
 }

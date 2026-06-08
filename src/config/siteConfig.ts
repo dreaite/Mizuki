@@ -238,7 +238,8 @@ export const siteConfig: SiteConfig = {
   },
 
   thirdPartyAnalytics: {
-    enable: false, // 是否启用第三方统计（Microsoft Clarity），默认关闭，启用可能影响 Lighthouse 评分
+    enable: false, // 是否启用 Microsoft Clarity，默认关闭，启用可能影响 Lighthouse 评分
+    googleAnalyticsId: "G-TLE0VZW6BW", // Google Analytics 4 Measurement ID，例如 "G-XXXXXXXXXX"
     clarityId: "", // Clarity 项目 ID
   },
   // 卡片样式配置
