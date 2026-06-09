@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import sitemap from "@astrojs/sitemap";
 import mdx from '@astrojs/mdx';
 import svelte, { vitePreprocess } from "@astrojs/svelte";
@@ -37,6 +39,14 @@ const sitemapLocaleAliases = {
 	jp: "ja",
 };
 const defaultSitemapLocale = siteConfig.i18n?.defaultLocale || "cn";
+const buildOutputDir = path.join(process.cwd(), "dist");
+
+function hasBuiltIndexPage(pathname) {
+	const normalizedPathname = decodeURIComponent(pathname)
+		.replace(/^\/+/, "")
+		.replace(/\/+$/, "");
+	return existsSync(path.join(buildOutputDir, normalizedPathname, "index.html"));
+}
 
 function shouldIncludeInSitemap(page) {
 	const pathname = new URL(page).pathname;
@@ -51,6 +61,13 @@ function shouldIncludeInSitemap(page) {
 		pathname.startsWith(`/${defaultSitemapLocale}/`)
 	) {
 		return false;
+	}
+
+	if (pathname.startsWith("/posts/")) {
+		const permalinkPathname = pathname.replace(/^\/posts\//, "/");
+		if (hasBuiltIndexPage(permalinkPathname)) {
+			return false;
+		}
 	}
 
 	return pathname !== `/${defaultSitemapLocale}/`;
