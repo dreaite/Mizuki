@@ -7,6 +7,7 @@
  */
 
 import { profileConfig, siteConfig } from "@/config";
+import { getDefaultLocaleInfo, stripLocalePrefix } from "@/i18n/locale";
 
 import {
 	DARK_MODE,
@@ -44,10 +45,21 @@ const keywords = siteConfig.keywords;
 // Favicons
 const favicons: Favicon[] =
 	siteConfig.favicon.length > 0 ? siteConfig.favicon : defaultFavicons;
+
+const defaultLocalePath = getDefaultLocaleInfo().path;
+const route = stripLocalePrefix(Astro.url.pathname);
+const canonicalUrl = new URL(Astro.url);
+canonicalUrl.search = "";
+canonicalUrl.hash = "";
+if (route.hasLocalePrefix && route.localePath === defaultLocalePath) {
+	canonicalUrl.pathname = route.pathWithoutLocale;
+}
+const canonicalHref = canonicalUrl.toString();
 ---
 
 <!-- SEO Meta Tags -->
 <title>{title}</title>
+<link rel="canonical" href={canonicalHref} />
 <meta name="description" content={description || title} />
 {
 	keywords && keywords.length > 0 && (
@@ -59,7 +71,7 @@ const favicons: Favicon[] =
 
 <!-- Open Graph Tags -->
 <meta property="og:site_name" content={siteConfig.title} />
-<meta property="og:url" content={Astro.url} />
+<meta property="og:url" content={canonicalHref} />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description || title} />
 {ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
@@ -75,7 +87,7 @@ const favicons: Favicon[] =
 
 <!-- Twitter Card Tags -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta property="twitter:url" content={Astro.url} />
+<meta property="twitter:url" content={canonicalHref} />
 <meta name="twitter:title" content={title} />
 <meta name="twitter:description" content={description || title} />
 {ogImageUrl && <meta name="twitter:image" content={ogImageUrl} />}

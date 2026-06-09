@@ -31,6 +31,31 @@ import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 import { remarkFixGithubAdmonitions } from "./src/plugins/remark-fix-github-admonitions.js";
 import { remarkMermaid } from "./src/plugins/remark-mermaid.js";
 
+const sitemapLocaleAliases = {
+	cn: "zh-CN",
+	en: "en",
+	jp: "ja",
+};
+const defaultSitemapLocale = siteConfig.i18n?.defaultLocale || "cn";
+
+function shouldIncludeInSitemap(page) {
+	const pathname = new URL(page).pathname;
+
+	if (pathname.startsWith("/api/")) {
+		return false;
+	}
+
+	if (
+		defaultSitemapLocale &&
+		pathname !== `/${defaultSitemapLocale}/` &&
+		pathname.startsWith(`/${defaultSitemapLocale}/`)
+	) {
+		return false;
+	}
+
+	return pathname !== `/${defaultSitemapLocale}/`;
+}
+
 // https://astro.build/config
 export default defineConfig({
 	site: siteConfig.siteURL,
@@ -127,7 +152,13 @@ export default defineConfig({
 		svelte({
 			preprocess: vitePreprocess(),
 		}),
-		sitemap(),
+		sitemap({
+			filter: shouldIncludeInSitemap,
+			i18n: {
+				defaultLocale: defaultSitemapLocale,
+				locales: sitemapLocaleAliases,
+			},
+		}),
 		mdx(),
 	],
 	markdown: {
@@ -252,4 +283,3 @@ export default defineConfig({
 		},
 	},
 });
-
