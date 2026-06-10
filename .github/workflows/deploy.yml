@@ -18,7 +18,7 @@ permissions:
 jobs:
   deploy:
     name: Build and deploy
-    runs-on: selfN100
+    runs-on: devNuc
     timeout-minutes: 60
 
     steps:
