@@ -19,6 +19,7 @@ import MainGridLayout from "@layouts/MainGridLayout.astro";
 import { getRelatedPosts, getSortedPosts } from "@utils/content-utils";
 import { hasCustomPermalink, initPostIdMap } from "@utils/permalink-utils";
 import { getPostPublicDescription } from "@utils/post-card-content";
+import { processRemotePosterImage } from "@utils/poster-image";
 import { getFileDirFromPath } from "@utils/url-utils";
 import {
 	licenseConfig,
@@ -149,16 +150,7 @@ if (entry.data.image) {
 		// Retain the original URL for OG
 		ogCoverUrl = entry.data.image;
 
-		// Convert to base64 only for poster
-		try {
-			const response = await fetch(entry.data.image);
-			const arrayBuffer = await response.arrayBuffer();
-			const base64 = Buffer.from(arrayBuffer).toString("base64");
-			const contentType = response.headers.get("content-type") || "image/jpeg";
-			posterCoverUrl = `data:${contentType};base64,${base64}`;
-		} catch {
-			posterCoverUrl = entry.data.image;
-		}
+		posterCoverUrl = await processRemotePosterImage(entry.data.image);
 	} else {
 		ogCoverUrl = entry.data.image; // absolute path like "/images/foo.png"
 	}
