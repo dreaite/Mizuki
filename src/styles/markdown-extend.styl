@@ -244,6 +244,136 @@ a.card-github.fetch-error
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1)
   transition-duration: 0.15s
 
+a.card-site
+  display: grid
+  grid-template-columns: minmax(0, 1fr) 9.5rem
+  gap: 1rem
+  align-items: stretch
+  min-height: 8rem
+  margin: 0.75rem 0
+  padding: 0.75rem
+  color: var(--tw-prose-body)
+  background: var(--license-block-bg)
+  border: 1px solid var(--line-divider)
+  border-radius: var(--radius-large)
+  text-decoration: none
+  overflow: hidden
+
+  &:hover
+    background-color: var(--btn-regular-bg-hover)
+    border-color: var(--primary)
+
+    .sc-title
+      color: var(--btn-content)
+
+  &:active
+    scale: .99
+    background-color: var(--btn-regular-bg-active)
+
+  .sc-body
+    display: flex
+    flex-direction: column
+    min-width: 0
+    padding: 0.2rem 0.1rem
+
+  .sc-meta
+    display: flex
+    align-items: center
+    gap: 0.45rem
+    min-width: 0
+    margin-bottom: 0.45rem
+    color: var(--tw-prose-body)
+    font-size: 0.8rem
+    line-height: 1.2
+    opacity: 0.72
+
+  .sc-icon
+    width: 1rem
+    height: 1rem
+    flex: 0 0 auto
+    border-radius: 0.25rem
+    object-fit: cover
+    cursor: inherit
+
+  .sc-icon-fallback
+    width: 0.55rem
+    height: 0.55rem
+    flex: 0 0 auto
+    border-radius: 999px
+    background: var(--primary)
+
+  .sc-site-name,
+  .sc-url
+    overflow: hidden
+    text-overflow: ellipsis
+    white-space: nowrap
+
+  .sc-title
+    display: -webkit-box
+    overflow: hidden
+    color: var(--tw-prose-headings)
+    font-size: 1.05rem
+    font-weight: 650
+    line-height: 1.35
+    -webkit-box-orient: vertical
+    -webkit-line-clamp: 2
+
+  .sc-description
+    display: -webkit-box
+    overflow: hidden
+    margin-top: 0.45rem
+    color: var(--tw-prose-body)
+    font-size: 0.9rem
+    line-height: 1.45
+    opacity: 0.86
+    -webkit-box-orient: vertical
+    -webkit-line-clamp: 2
+
+  .sc-url
+    margin-top: auto
+    padding-top: 0.7rem
+    color: var(--tw-prose-body)
+    font-size: 0.78rem
+    line-height: 1.2
+    opacity: 0.62
+
+  .sc-media
+    position: relative
+    overflow: hidden
+    min-height: 6.5rem
+    border-radius: 0.75rem
+    background: var(--btn-regular-bg)
+
+  .sc-image
+    display: block
+    width: 100%
+    height: 100%
+    object-fit: cover
+    cursor: inherit
+
+  .sc-placeholder
+    display: flex
+    align-items: center
+    justify-content: center
+    color: var(--btn-content)
+    font-size: 1.35rem
+    font-weight: 700
+    letter-spacing: 0
+
+.card-site, .sc-title, .sc-description, .sc-media, .sc-image, .sc-icon
+  transition-property: color, background-color, border-color, opacity, scale
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1)
+  transition-duration: 0.15s
+
+@media (max-width: 640px)
+  a.card-site
+    grid-template-columns: 1fr
+
+    .sc-media
+      order: -1
+      aspect-ratio: 16 / 9
+      min-height: 0
+
 // Mermaid 图表样式
 .mermaid-diagram-container
   margin: 1rem 0

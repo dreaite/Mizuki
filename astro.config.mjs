@@ -25,6 +25,7 @@ import { pluginCustomCopyButton } from "./src/plugins/expressive-code/custom-cop
 import { pluginLanguageBadge } from "./src/plugins/expressive-code/language-badge.ts";
 import { AdmonitionComponent } from "./src/plugins/rehype-component-admonition.mjs";
 import { GithubCardComponent } from "./src/plugins/rehype-component-github-card.mjs";
+import { SiteCardComponent } from "./src/plugins/rehype-component-site-card.mjs";
 import { rehypeImageWidth } from "./src/plugins/rehype-image-width.mjs";
 import { rehypeMermaid } from "./src/plugins/rehype-mermaid.mjs";
 import { rehypeWrapTable } from "./src/plugins/rehype-wrap-table.mjs";
@@ -32,6 +33,7 @@ import { remarkContent } from "./src/plugins/remark-content.mjs";
 import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 import { remarkFixGithubAdmonitions } from "./src/plugins/remark-fix-github-admonitions.js";
 import { remarkMermaid } from "./src/plugins/remark-mermaid.js";
+import { remarkSiteMetadata } from "./src/plugins/remark-site-metadata.mjs";
 
 const sitemapLocaleAliases = {
 	cn: "zh-CN",
@@ -184,6 +186,7 @@ export default defineConfig({
 			remarkContent,
 			remarkFixGithubAdmonitions,
 			remarkDirective,
+			remarkSiteMetadata,
 			remarkSectionize,
 			parseDirectiveNode,
 			remarkMermaid,
@@ -205,6 +208,7 @@ export default defineConfig({
 				{
 					components: {
 						github: GithubCardComponent,
+						site: SiteCardComponent,
 						note: (x, y) => AdmonitionComponent(x, y, "note"),
 						tip: (x, y) => AdmonitionComponent(x, y, "tip"),
 						important: (x, y) =>
