@@ -1,51 +1,55 @@
-name: Deploy to Pages Branch
+name: Deploy Cloudflare Pages
 
 on:
-  # 每次推送到 `main` 分支时触发这个"工作流程"
-  # 如果你使用了别的分支名，请按需将 `main` 替换成你的分支名
   push:
-    branches: [ main ]
-  # 允许你在 GitHub 上的 Actions 标签中手动触发此"工作流程"
+    branches: [master]
+  repository_dispatch:
+    types: [content-updated]
   workflow_dispatch:
 
-# 需要写入权限来推送到pages分支
+concurrency:
+  group: deploy-cloudflare-pages
+  cancel-in-progress: true
+
 permissions:
-  contents: write
+  contents: read
+  deployments: write
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+  deploy:
+    name: Build and deploy
+    runs-on: selfN100
+    timeout-minutes: 60
+
     steps:
-      - name: Checkout your repository using git
-        uses: actions/checkout@v4
-        with:
-          submodules: true  # 支持 Git Submodule 模式
-          token: ${{ secrets.GITHUB_TOKEN }}  # 自动访问同账号下的私有仓库
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          
+      - name: Checkout
+        uses: actions/checkout@v6
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           run_install: false
-          
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-      
+        run: pnpm install --frozen-lockfile
+
       - name: Build site
         run: pnpm run build
         env:
-          # 如果需要启用内容分离,取消以下注释并配置
-          # ENABLE_CONTENT_SYNC: true
-          # CONTENT_REPO_URL: ${{ secrets.CONTENT_REPO_URL }}
-          # USE_SUBMODULE: true
-      
-      - name: Deploy to pages branch
-        uses: JamesIves/github-pages-deploy-action@v4
+          ENABLE_CONTENT_SYNC: "true"
+          CONTENT_REPO_URL: ${{ secrets.CONTENT_REPO_URL }}
+          BANGUMI_AUTH_TOKEN: ${{ secrets.BANGUMI_AUTH_TOKEN }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
-          branch: pages # 部署到pages分支
-          folder: dist # Astro默认构建输出目录
-          clean: true # 清理目标分支中的旧文件
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=mizuki --branch=master
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
