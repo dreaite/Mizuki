@@ -186,7 +186,7 @@ export default defineConfig({
 			remarkContent,
 			remarkFixGithubAdmonitions,
 			remarkDirective,
-			remarkSiteMetadata,
+			[remarkSiteMetadata, { siteUrl: siteConfig.siteURL }],
 			remarkSectionize,
 			parseDirectiveNode,
 			remarkMermaid,

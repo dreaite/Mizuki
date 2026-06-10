@@ -81,3 +81,4 @@ jobs:
         run: pnpm build
         env:
           ENABLE_CONTENT_SYNC: false
+          SITE_CARD_FETCH_METADATA: "false"

@@ -1,14 +1,18 @@
 import { parse } from "node-html-parser";
 import { visit } from "unist-util-visit";
 
-const DEFAULT_TIMEOUT_MS = 8000;
+const DEFAULT_TIMEOUT_MS = 3000;
 const DEFAULT_MAX_BYTES = 512 * 1024;
 const siteMetadataCache = new Map();
+const warnedSiteMetadataFailures = new Set();
 
 export function remarkSiteMetadata(options = {}) {
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 	const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
 	const shouldWarn = options.warn ?? true;
+	const shouldFetch = getFetchEnabled(options);
+	const shouldSkipInternal = options.skipInternal ?? true;
+	const siteOrigins = getSiteOrigins(options.siteUrl || options.siteURL);
 
 	return async (tree) => {
 		const siteNodes = [];
@@ -36,6 +40,22 @@ export function remarkSiteMetadata(options = {}) {
 
 				node.attributes.url = normalizedUrl;
 
+				if (shouldSkipInternal && isSameSiteUrl(normalizedUrl, siteOrigins)) {
+					applyMetadata(
+						node.attributes,
+						createFallbackMetadata(normalizedUrl, "internal"),
+					);
+					return;
+				}
+
+				if (!shouldFetch) {
+					applyMetadata(
+						node.attributes,
+						createFallbackMetadata(normalizedUrl, "skipped"),
+					);
+					return;
+				}
+
 				const metadata = await getCachedSiteMetadata(normalizedUrl, {
 					timeoutMs,
 					maxBytes,
@@ -44,9 +64,7 @@ export function remarkSiteMetadata(options = {}) {
 				applyMetadata(node.attributes, metadata);
 
 				if (shouldWarn && metadata.status === "error") {
-					console.warn(
-						`[site-card] Failed to fetch metadata for ${normalizedUrl}: ${metadata.error}`,
-					);
+					warnSiteMetadataFailure(normalizedUrl, metadata.error);
 				}
 			}),
 		);
@@ -107,6 +125,7 @@ function getCachedSiteMetadata(url, options) {
 async function fetchSiteMetadata(url, { timeoutMs, maxBytes }) {
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), timeoutMs);
+	timeout.unref?.();
 
 	try {
 		const response = await fetch(url, {
@@ -133,7 +152,7 @@ async function fetchSiteMetadata(url, { timeoutMs, maxBytes }) {
 			return { status: "error", error: `timeout after ${timeoutMs}ms` };
 		}
 
-		return { status: "error", error: error?.message || String(error) };
+		return { status: "error", error: formatError(error) };
 	} finally {
 		clearTimeout(timeout);
 	}
@@ -280,12 +299,97 @@ function normalizeSiteUrl(value) {
 	return "";
 }
 
+function getFetchEnabled(options) {
+	if (options.fetch !== undefined) {
+		return Boolean(options.fetch);
+	}
+
+	const envValue = process.env.SITE_CARD_FETCH_METADATA;
+	if (envValue !== undefined) {
+		return ["1", "true", "yes", "on"].includes(envValue.toLowerCase());
+	}
+
+	return process.env.CI !== "true" && process.env.GITHUB_ACTIONS !== "true";
+}
+
+function getSiteOrigins(siteUrl) {
+	const origins = new Set();
+
+	for (const value of [siteUrl, process.env.SITE, process.env.ASTRO_SITE]) {
+		const normalizedUrl = normalizeSiteUrl(value);
+		if (!normalizedUrl) continue;
+
+		try {
+			origins.add(new URL(normalizedUrl).origin);
+		} catch {
+			// Ignore invalid site origins.
+		}
+	}
+
+	return origins;
+}
+
+function isSameSiteUrl(value, siteOrigins) {
+	if (siteOrigins.size === 0) {
+		return false;
+	}
+
+	try {
+		return siteOrigins.has(new URL(value).origin);
+	} catch {
+		return false;
+	}
+}
+
+function createFallbackMetadata(url, status) {
+	return {
+		status,
+		siteName: getHostnameLabel(url),
+		title: getReadableUrlTitle(url),
+	};
+}
+
+function getReadableUrlTitle(value) {
+	try {
+		const url = new URL(value);
+		const pathname = url.pathname.replace(/\/+$/, "");
+		const lastSegment = pathname.split("/").filter(Boolean).pop();
+		return lastSegment
+			? decodeURIComponent(lastSegment).replace(/[-_]+/g, " ")
+			: getHostnameLabel(value);
+	} catch {
+		return "";
+	}
+}
+
 function getHostnameLabel(value) {
 	try {
 		return new URL(value).hostname.replace(/^www\./, "");
 	} catch {
 		return "";
 	}
+}
+
+function warnSiteMetadataFailure(url, error) {
+	if (warnedSiteMetadataFailures.has(url)) {
+		return;
+	}
+
+	warnedSiteMetadataFailures.add(url);
+	console.warn(`[site-card] Failed to fetch metadata for ${url}: ${error}`);
+}
+
+function formatError(error) {
+	const messages = [
+		error?.message,
+		error?.cause?.message,
+		error?.code,
+		error?.cause?.code,
+	]
+		.filter(Boolean)
+		.map(String);
+
+	return [...new Set(messages)].join("; ") || String(error);
 }
 
 function cleanText(value) {
