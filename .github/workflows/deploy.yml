@@ -43,7 +43,7 @@ jobs:
         run: pnpm run build
         env:
           ENABLE_CONTENT_SYNC: "true"
-          SITE_CARD_FETCH_METADATA: "false"
+          SITE_CARD_FETCH_METADATA: "true"
           CONTENT_REPO_URL: ${{ secrets.CONTENT_REPO_URL }}
           BANGUMI_AUTH_TOKEN: ${{ secrets.BANGUMI_AUTH_TOKEN }}
 

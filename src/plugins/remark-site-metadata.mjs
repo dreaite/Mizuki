@@ -1,8 +1,11 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
+
 import { parse } from "node-html-parser";
 import { visit } from "unist-util-visit";
 
 const DEFAULT_TIMEOUT_MS = 3000;
-const DEFAULT_MAX_BYTES = 512 * 1024;
+const DEFAULT_MAX_BYTES = 2 * 1024 * 1024;
 const siteMetadataCache = new Map();
 const warnedSiteMetadataFailures = new Set();
 
@@ -12,7 +15,20 @@ export function remarkSiteMetadata(options = {}) {
 	const shouldWarn = options.warn ?? true;
 	const shouldFetch = getFetchEnabled(options);
 	const shouldSkipInternal = options.skipInternal ?? true;
-	const siteOrigins = getSiteOrigins(options.siteUrl || options.siteURL);
+	const siteUrl = options.siteUrl || options.siteURL;
+	const siteOrigins = getSiteOrigins(siteUrl);
+	let localSiteMetadata = null;
+
+	const getLocalSiteMetadataOnce = () => {
+		if (!localSiteMetadata) {
+			localSiteMetadata = getLocalSiteMetadata({
+				contentDir: options.contentDir,
+				siteUrl,
+			});
+		}
+
+		return localSiteMetadata;
+	};
 
 	return async (tree) => {
 		const siteNodes = [];
@@ -43,7 +59,8 @@ export function remarkSiteMetadata(options = {}) {
 				if (shouldSkipInternal && isSameSiteUrl(normalizedUrl, siteOrigins)) {
 					applyMetadata(
 						node.attributes,
-						createFallbackMetadata(normalizedUrl, "internal"),
+						getLocalSiteMetadataOnce().get(getUrlPathKey(normalizedUrl)) ||
+							createFallbackMetadata(normalizedUrl, "internal"),
 					);
 					return;
 				}
@@ -160,7 +177,7 @@ async function fetchSiteMetadata(url, { timeoutMs, maxBytes }) {
 
 async function readLimitedText(response, maxBytes) {
 	if (!response.body?.getReader) {
-		return (await response.text()).slice(0, maxBytes);
+		return trimMetadataHtml((await response.text()).slice(0, maxBytes));
 	}
 
 	const reader = response.body.getReader();
@@ -184,13 +201,24 @@ async function readLimitedText(response, maxBytes) {
 		receivedBytes += chunk.byteLength;
 		text += decoder.decode(chunk, { stream: true });
 
+		const metadataHtml = trimMetadataHtml(text);
+		if (metadataHtml.length !== text.length) {
+			await reader.cancel();
+			return metadataHtml;
+		}
+
 		if (value.byteLength > remainingBytes) {
 			await reader.cancel();
 			break;
 		}
 	}
 
-	return text + decoder.decode();
+	return trimMetadataHtml(text + decoder.decode());
+}
+
+function trimMetadataHtml(html) {
+	const headEnd = html.toLowerCase().indexOf("</head>");
+	return headEnd === -1 ? html : html.slice(0, headEnd + "</head>".length);
 }
 
 function extractSiteMetadata(html, baseUrl) {
@@ -209,6 +237,7 @@ function extractSiteMetadata(html, baseUrl) {
 		getMetaContent(root, [
 			'meta[property="og:image"]',
 			'meta[property="og:image:url"]',
+			'meta[property="og:image:secure_url"]',
 			'meta[name="twitter:image"]',
 			'meta[name="twitter:image:src"]',
 		]),
@@ -297,6 +326,169 @@ function normalizeSiteUrl(value) {
 	}
 
 	return "";
+}
+
+function getLocalSiteMetadata({ contentDir, siteUrl } = {}) {
+	const metadataByPath = new Map();
+	const rootDir = contentDir || path.join(process.cwd(), "src/content/posts");
+	const siteName = getHostnameLabel(siteUrl);
+
+	for (const filePath of getMarkdownFiles(rootDir)) {
+		const frontmatter = readMarkdownFrontmatter(filePath);
+		if (!frontmatter) {
+			continue;
+		}
+
+		const metadata = {
+			status: "internal",
+			description: frontmatter.description,
+			image: resolveLocalMetadataImage(frontmatter.image),
+			siteName,
+			title: frontmatter.title,
+		};
+
+		for (const pathname of getLocalPostPathnames(
+			rootDir,
+			filePath,
+			frontmatter,
+		)) {
+			for (const expandedPathname of expandLocalPathnames(pathname)) {
+				metadataByPath.set(getUrlPathKey(expandedPathname), metadata);
+			}
+		}
+	}
+
+	return metadataByPath;
+}
+
+function getMarkdownFiles(rootDir) {
+	const files = [];
+
+	try {
+		for (const entryName of readdirSync(rootDir)) {
+			const entryPath = path.join(rootDir, entryName);
+			const stats = statSync(entryPath);
+
+			if (stats.isDirectory()) {
+				files.push(...getMarkdownFiles(entryPath));
+				continue;
+			}
+
+			if (stats.isFile() && /\.mdx?$/i.test(entryName)) {
+				files.push(entryPath);
+			}
+		}
+	} catch {
+		return files;
+	}
+
+	return files;
+}
+
+function readMarkdownFrontmatter(filePath) {
+	let markdown = "";
+
+	try {
+		markdown = readFileSync(filePath, "utf8");
+	} catch {
+		return null;
+	}
+
+	if (!markdown.startsWith("---")) {
+		return null;
+	}
+
+	const frontmatterEnd = markdown.indexOf("\n---", 3);
+	if (frontmatterEnd === -1) {
+		return null;
+	}
+
+	const frontmatter = {};
+	const rawFrontmatter = markdown.slice(3, frontmatterEnd);
+
+	for (const line of rawFrontmatter.split(/\r?\n/)) {
+		const match = /^([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$/.exec(line);
+		if (!match) {
+			continue;
+		}
+
+		frontmatter[match[1]] = readYamlScalar(match[2]);
+	}
+
+	return frontmatter;
+}
+
+function readYamlScalar(value) {
+	const rawValue = cleanText(value);
+	const quotedValue = rawValue.match(/^(['"])(.*)\1$/);
+	return quotedValue ? quotedValue[2] : rawValue;
+}
+
+function getLocalPostPathnames(rootDir, filePath, frontmatter) {
+	const pathnames = [];
+
+	for (const explicitPath of [frontmatter.permalink, frontmatter.alias]) {
+		const pathname = getUrlPathKey(explicitPath);
+		if (pathname !== "/") {
+			pathnames.push(pathname);
+		}
+	}
+
+	const relativePath = path
+		.relative(rootDir, filePath)
+		.replace(/\\/g, "/")
+		.replace(/\.mdx?$/i, "");
+	const slug = stripLocaleSuffix(relativePath).replace(/\/index$/i, "");
+
+	if (slug) {
+		pathnames.push(`/${slug}`);
+		pathnames.push(`/posts/${slug}`);
+	}
+
+	return pathnames;
+}
+
+function stripLocaleSuffix(value) {
+	return value.replace(/\.(cn|en|ja|jp|zh|zh-cn|zh-tw)$/i, "");
+}
+
+function expandLocalPathnames(pathname) {
+	const cleanPath = getUrlPathKey(pathname);
+	const pathnames = new Set([cleanPath]);
+
+	for (const locale of ["cn", "en", "jp", "ja"]) {
+		pathnames.add(`/${locale}${cleanPath}`);
+	}
+
+	return pathnames;
+}
+
+function resolveLocalMetadataImage(value) {
+	const image = cleanText(value);
+
+	if (
+		image.startsWith("http://") ||
+		image.startsWith("https://") ||
+		image.startsWith("/") ||
+		image.startsWith("data:image/")
+	) {
+		return image;
+	}
+
+	return "";
+}
+
+function getUrlPathKey(value) {
+	try {
+		return cleanPathname(new URL(value).pathname);
+	} catch {
+		return cleanPathname(value);
+	}
+}
+
+function cleanPathname(value) {
+	const pathname = cleanText(value).replace(/^\/+/, "").replace(/\/+$/, "");
+	return pathname ? `/${pathname}` : "/";
 }
 
 function getFetchEnabled(options) {
