@@ -4,13 +4,13 @@ import path from "node:path";
 import { parse } from "node-html-parser";
 import { visit } from "unist-util-visit";
 
-const DEFAULT_TIMEOUT_MS = 3000;
+const DEFAULT_TIMEOUT_MS = 30000;
 const DEFAULT_MAX_BYTES = 2 * 1024 * 1024;
 const siteMetadataCache = new Map();
 const warnedSiteMetadataFailures = new Set();
 
 export function remarkSiteMetadata(options = {}) {
-	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+	const timeoutMs = getTimeoutMs(options.timeoutMs);
 	const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
 	const shouldWarn = options.warn ?? true;
 	const shouldFetch = getFetchEnabled(options);
@@ -502,6 +502,15 @@ function getFetchEnabled(options) {
 	}
 
 	return process.env.CI !== "true" && process.env.GITHUB_ACTIONS !== "true";
+}
+
+function getTimeoutMs(optionValue) {
+	const rawValue = optionValue ?? process.env.SITE_CARD_FETCH_TIMEOUT_MS;
+	const timeoutMs = Number.parseInt(rawValue, 10);
+
+	return Number.isFinite(timeoutMs) && timeoutMs > 0
+		? timeoutMs
+		: DEFAULT_TIMEOUT_MS;
 }
 
 function getSiteOrigins(siteUrl) {
