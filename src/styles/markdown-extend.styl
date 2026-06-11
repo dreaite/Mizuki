@@ -259,6 +259,24 @@ a.card-site
   text-decoration: none
   overflow: hidden
 
+  &.no-image
+    grid-template-columns: 1fr
+    min-height: auto
+    padding: 1rem 1.1rem
+
+    .sc-body
+      padding: 0
+
+    .sc-title
+      -webkit-line-clamp: 1
+
+    .sc-description
+      -webkit-line-clamp: 2
+
+    .sc-url
+      margin-top: 0.6rem
+      padding-top: 0
+
   &:hover
     background-color: var(--btn-regular-bg-hover)
     border-color: var(--primary)

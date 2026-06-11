@@ -40,19 +40,7 @@ export function SiteCardComponent(properties, children) {
 			target: "_blank",
 		},
 		[
-			image
-				? h("div", { class: "sc-media" }, [
-						h("img", {
-							alt: "",
-							class: "sc-image",
-							decoding: "async",
-							loading: "lazy",
-							src: image,
-						}),
-					])
-				: h("div", { class: "sc-media sc-placeholder" }, [
-						h("span", domainInitials(host)),
-					]),
+			image ? createSiteCardImage(image) : null,
 			h(
 				"div",
 				{ class: "sc-body" },
@@ -76,8 +64,20 @@ export function SiteCardComponent(properties, children) {
 					h("div", { class: "sc-url" }, formatDisplayUrl(url)),
 				].filter(Boolean),
 			),
-		],
+		].filter(Boolean),
 	);
+}
+
+function createSiteCardImage(image) {
+	return h("div", { class: "sc-media" }, [
+		h("img", {
+			alt: "",
+			class: "sc-image",
+			decoding: "async",
+			loading: "lazy",
+			src: image,
+		}),
+	]);
 }
 
 function pick(properties, keys) {
@@ -147,13 +147,4 @@ function formatDisplayUrl(value) {
 	} catch {
 		return value;
 	}
-}
-
-function domainInitials(hostname) {
-	const parts = hostname
-		.replace(/^www\./, "")
-		.split(".")
-		.filter(Boolean);
-	const label = parts[0] || hostname || "site";
-	return label.slice(0, 2).toUpperCase();
 }
