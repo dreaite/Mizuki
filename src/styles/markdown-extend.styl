@@ -248,7 +248,7 @@ a.card-site
   display: grid
   grid-template-columns: minmax(10rem, 18rem) minmax(0, 1fr)
   gap: 1rem
-  align-items: start
+  align-items: stretch
   min-height: 8rem
   margin: 0.75rem 0
   padding: 0.75rem
@@ -356,15 +356,22 @@ a.card-site
     opacity: 0.62
 
   .sc-media
+    position: relative
+    align-self: start
     overflow: hidden
+    width: 100%
+    aspect-ratio: 16 / 9
     min-height: 0
     border-radius: 0.75rem
     background: var(--btn-regular-bg)
 
   .sc-image
     display: block
+    position: absolute
+    inset: 0
     width: 100%
-    height: auto
+    height: 100%
+    object-fit: cover
     cursor: inherit
 
   .sc-placeholder
