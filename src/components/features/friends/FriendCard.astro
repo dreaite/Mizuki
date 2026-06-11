@@ -1,6 +1,7 @@
 ---
 import I18nKey from "../../../i18n/i18nKey";
 import { i18n } from "../../../i18n/translation";
+import { resolveFriendImageUrl } from "../../../utils/friend-image.mjs";
 
 interface Props {
 	friend: {
@@ -14,6 +15,7 @@ interface Props {
 
 const { friend } = Astro.props;
 const hostname = new URL(friend.siteurl).hostname;
+const imageUrl = resolveFriendImageUrl(friend.imgurl, friend.siteurl);
 ---
 
 <div
@@ -29,10 +31,12 @@ const hostname = new URL(friend.siteurl).hostname;
 				class="w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden bg-[var(--btn-regular-bg)] ring-2 ring-transparent transition-all duration-300"
 			>
 				<img
-					src={friend.imgurl}
+					src={imageUrl}
 					alt={friend.title}
 					class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
 					loading="lazy"
+					decoding="async"
+					referrerpolicy="no-referrer"
 				/>
 			</div>
 
