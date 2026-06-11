@@ -186,7 +186,14 @@ export default defineConfig({
 			remarkContent,
 			remarkFixGithubAdmonitions,
 			remarkDirective,
-			[remarkSiteMetadata, { siteUrl: siteConfig.siteURL }],
+			[
+				remarkSiteMetadata,
+				{
+					siteUrl: siteConfig.siteURL,
+					defaultLocale: siteConfig.i18n?.defaultLocale,
+					locales: siteConfig.i18n?.locales,
+				},
+			],
 			remarkSectionize,
 			parseDirectiveNode,
 			remarkMermaid,

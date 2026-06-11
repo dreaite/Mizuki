@@ -6,6 +6,8 @@ import { visit } from "unist-util-visit";
 
 const DEFAULT_TIMEOUT_MS = 30000;
 const DEFAULT_MAX_BYTES = 2 * 1024 * 1024;
+const DEFAULT_LOCALE_PATH = "cn";
+const DEFAULT_LOCALE_PATHS = ["cn", "en", "jp"];
 const siteMetadataCache = new Map();
 const warnedSiteMetadataFailures = new Set();
 
@@ -17,12 +19,18 @@ export function remarkSiteMetadata(options = {}) {
 	const shouldSkipInternal = options.skipInternal ?? true;
 	const siteUrl = options.siteUrl || options.siteURL;
 	const siteOrigins = getSiteOrigins(siteUrl);
+	const defaultLocalePath = normalizeLocalePath(
+		options.defaultLocale || options.defaultLocalePath || DEFAULT_LOCALE_PATH,
+	);
+	const localePaths = getLocalePaths(options.locales, defaultLocalePath);
 	let localSiteMetadata = null;
 
 	const getLocalSiteMetadataOnce = () => {
 		if (!localSiteMetadata) {
 			localSiteMetadata = getLocalSiteMetadata({
 				contentDir: options.contentDir,
+				defaultLocalePath,
+				localePaths,
 				siteUrl,
 			});
 		}
@@ -30,8 +38,12 @@ export function remarkSiteMetadata(options = {}) {
 		return localSiteMetadata;
 	};
 
-	return async (tree) => {
+	return async (tree, file) => {
 		const siteNodes = [];
+		const currentLocalePath = getCurrentMarkdownLocalePath(
+			file,
+			defaultLocalePath,
+		);
 
 		visit(tree, (node) => {
 			if (
@@ -57,11 +69,25 @@ export function remarkSiteMetadata(options = {}) {
 				node.attributes.url = normalizedUrl;
 
 				if (shouldSkipInternal && isSameSiteUrl(normalizedUrl, siteOrigins)) {
-					applyMetadata(
-						node.attributes,
-						getLocalSiteMetadataOnce().get(getUrlPathKey(normalizedUrl)) ||
-							createFallbackMetadata(normalizedUrl, "internal"),
+					const localMetadata = findLocalSiteMetadata(
+						getLocalSiteMetadataOnce(),
+						normalizedUrl,
+						{
+							currentLocalePath,
+							defaultLocalePath,
+							localePaths,
+							siteUrl,
+						},
 					);
+					if (localMetadata) {
+						node.attributes.url = localMetadata.url;
+						applyMetadata(node.attributes, localMetadata);
+					} else {
+						applyMetadata(
+							node.attributes,
+							createFallbackMetadata(normalizedUrl, "internal"),
+						);
+					}
 					return;
 				}
 
@@ -328,7 +354,12 @@ function normalizeSiteUrl(value) {
 	return "";
 }
 
-function getLocalSiteMetadata({ contentDir, siteUrl } = {}) {
+function getLocalSiteMetadata({
+	contentDir,
+	defaultLocalePath = DEFAULT_LOCALE_PATH,
+	localePaths = DEFAULT_LOCALE_PATHS,
+	siteUrl,
+} = {}) {
 	const metadataByPath = new Map();
 	const rootDir = contentDir || path.join(process.cwd(), "src/content/posts");
 	const siteName = getHostnameLabel(siteUrl);
@@ -346,14 +377,27 @@ function getLocalSiteMetadata({ contentDir, siteUrl } = {}) {
 			siteName,
 			title: frontmatter.title,
 		};
+		const localePath = getMarkdownLocalePath(rootDir, filePath, frontmatter, {
+			defaultLocalePath,
+		});
 
-		for (const pathname of getLocalPostPathnames(
-			rootDir,
+		for (const pathname of getLocalPostPathnames({
+			defaultLocalePath,
 			filePath,
 			frontmatter,
-		)) {
-			for (const expandedPathname of expandLocalPathnames(pathname)) {
-				metadataByPath.set(getUrlPathKey(expandedPathname), metadata);
+			localePath,
+			rootDir,
+		})) {
+			for (const localizedPathname of localizePostPathname(pathname, {
+				defaultLocalePath,
+				localePath,
+				localePaths,
+			})) {
+				const pathnameKey = getUrlPathKey(localizedPathname);
+				metadataByPath.set(pathnameKey, {
+					...metadata,
+					pathname: pathnameKey,
+				});
 			}
 		}
 	}
@@ -424,43 +468,266 @@ function readYamlScalar(value) {
 	return quotedValue ? quotedValue[2] : rawValue;
 }
 
-function getLocalPostPathnames(rootDir, filePath, frontmatter) {
+function getLocalPostPathnames({
+	defaultLocalePath = DEFAULT_LOCALE_PATH,
+	filePath,
+	frontmatter,
+	localePath,
+	rootDir,
+}) {
 	const pathnames = [];
 
-	for (const explicitPath of [frontmatter.permalink, frontmatter.alias]) {
-		const pathname = getUrlPathKey(explicitPath);
-		if (pathname !== "/") {
-			pathnames.push(pathname);
-		}
+	const permalink = getUrlPathKey(frontmatter.permalink);
+	if (permalink !== "/") {
+		pathnames.push({
+			pathname: permalink,
+			type: "permalink",
+		});
 	}
 
-	const relativePath = path
-		.relative(rootDir, filePath)
-		.replace(/\\/g, "/")
-		.replace(/\.mdx?$/i, "");
+	const alias = cleanContentSlug(frontmatter.alias);
+	if (alias) {
+		pathnames.push({
+			pathname: `/posts/${alias}`,
+			type: "post",
+		});
+	}
+
+	const relativePath = getMarkdownRelativePath(rootDir, filePath);
 	const slug = stripLocaleSuffix(relativePath).replace(/\/index$/i, "");
 
 	if (slug) {
-		pathnames.push(`/${slug}`);
-		pathnames.push(`/posts/${slug}`);
+		pathnames.push({
+			pathname: `/posts/${slug}`,
+			type: "post",
+		});
+
+		if (localePath === defaultLocalePath) {
+			pathnames.push({
+				pathname: `/${slug}`,
+				type: "default-root",
+			});
+		}
 	}
 
 	return pathnames;
+}
+
+function localizePostPathname(
+	pathEntry,
+	{ defaultLocalePath = DEFAULT_LOCALE_PATH, localePath, localePaths },
+) {
+	const cleanPath = getUrlPathKey(pathEntry.pathname);
+	if (cleanPath === "/") {
+		return [];
+	}
+
+	const prefixed = getLocalePrefixedPathInfo(cleanPath, localePaths);
+	if (prefixed.localePath) {
+		return [cleanPath];
+	}
+
+	const pathnames = new Set();
+	if (localePath === defaultLocalePath) {
+		pathnames.add(cleanPath);
+		pathnames.add(addLocalePrefix(cleanPath, localePath));
+		return pathnames;
+	}
+
+	if (pathEntry.type !== "default-root") {
+		pathnames.add(addLocalePrefix(cleanPath, localePath));
+	}
+
+	return pathnames;
+}
+
+function getMarkdownRelativePath(rootDir, filePath) {
+	return path
+		.relative(rootDir, filePath)
+		.replace(/\\/g, "/")
+		.replace(/\.mdx?$/i, "");
+}
+
+function cleanContentSlug(value) {
+	const pathname = getUrlPathKey(value);
+	if (pathname === "/") {
+		return "";
+	}
+
+	return pathname.replace(/^\/posts\//, "").replace(/^\/+/, "");
+}
+
+function getMarkdownLocalePath(
+	rootDir,
+	filePath,
+	frontmatter,
+	{ defaultLocalePath = DEFAULT_LOCALE_PATH } = {},
+) {
+	return (
+		getLocalePathFromLanguage(frontmatter?.lang) ||
+		getLocalePathFromPath(getMarkdownRelativePath(rootDir, filePath)) ||
+		defaultLocalePath
+	);
+}
+
+function getCurrentMarkdownLocalePath(file, defaultLocalePath) {
+	return (
+		getLocalePathFromLanguage(file?.data?.astro?.frontmatter?.lang) ||
+		getLocalePathFromPath(file?.path || file?.history?.[0] || "") ||
+		defaultLocalePath
+	);
+}
+
+function getLocalePathFromPath(value) {
+	const normalized = String(value || "").replace(/\\/g, "/");
+	const withoutExt = normalized.replace(/\.(md|mdx|markdown)$/i, "");
+	const base = withoutExt.split("/").filter(Boolean).pop() || "";
+	const dotIndex = base.lastIndexOf(".");
+	if (dotIndex <= 0) {
+		return "";
+	}
+
+	return getLocalePathFromLanguage(base.slice(dotIndex + 1));
+}
+
+function getLocalePathFromLanguage(value) {
+	const normalized = normalizeLanguageCode(value);
+	if (normalized === "en") {
+		return "en";
+	}
+	if (normalized === "ja" || normalized === "jp") {
+		return "jp";
+	}
+	if (normalized === "zh_cn" || normalized === "zh" || normalized === "cn") {
+		return "cn";
+	}
+
+	return "";
+}
+
+function normalizeLanguageCode(value) {
+	return cleanText(value).toLowerCase().replace(/-/g, "_");
+}
+
+function normalizeLocalePath(value) {
+	const localePath = getLocalePathFromLanguage(value) || cleanText(value);
+	return localePath || DEFAULT_LOCALE_PATH;
+}
+
+function getLocalePaths(locales, defaultLocalePath) {
+	const values = Array.isArray(locales) ? locales : DEFAULT_LOCALE_PATHS;
+	const localePaths = values
+		.map((locale) => normalizeLocalePath(locale))
+		.filter(Boolean);
+
+	if (!localePaths.includes(defaultLocalePath)) {
+		localePaths.unshift(defaultLocalePath);
+	}
+
+	return [...new Set(localePaths)];
+}
+
+function getLocalePrefixedPathInfo(pathname, localePaths) {
+	const segments = getUrlPathKey(pathname).split("/").filter(Boolean);
+	const firstSegment = segments[0];
+
+	if (localePaths.includes(firstSegment)) {
+		return {
+			localePath: firstSegment,
+			pathWithoutLocale: `/${segments.slice(1).join("/")}`,
+		};
+	}
+
+	return {
+		localePath: "",
+		pathWithoutLocale: getUrlPathKey(pathname),
+	};
+}
+
+function addLocalePrefix(pathname, localePath) {
+	return getUrlPathKey(`/${localePath}${getUrlPathKey(pathname)}`);
+}
+
+function getPostPathAlternates(pathname) {
+	const cleanPath = getUrlPathKey(pathname);
+	const pathnames = [cleanPath];
+
+	if (cleanPath.startsWith("/posts/")) {
+		pathnames.push(cleanPath.replace(/^\/posts\//, "/"));
+	} else {
+		pathnames.push(getUrlPathKey(`/posts${cleanPath}`));
+	}
+
+	return [...new Set(pathnames)];
+}
+
+function getLocalizedLookupCandidates(
+	pathname,
+	{ currentLocalePath, defaultLocalePath, localePaths },
+) {
+	const cleanPath = getUrlPathKey(pathname);
+	const prefixed = getLocalePrefixedPathInfo(cleanPath, localePaths);
+
+	if (prefixed.localePath) {
+		return getPostPathAlternates(prefixed.pathWithoutLocale).map((candidate) =>
+			addLocalePrefix(candidate, prefixed.localePath),
+		);
+	}
+
+	const candidates = [];
+
+	if (currentLocalePath && currentLocalePath !== defaultLocalePath) {
+		for (const candidate of getPostPathAlternates(cleanPath)) {
+			candidates.push(addLocalePrefix(candidate, currentLocalePath));
+		}
+	}
+
+	candidates.push(...getPostPathAlternates(cleanPath));
+
+	if (defaultLocalePath) {
+		for (const candidate of getPostPathAlternates(cleanPath)) {
+			candidates.push(addLocalePrefix(candidate, defaultLocalePath));
+		}
+	}
+
+	return [...new Set(candidates)];
+}
+
+function findLocalSiteMetadata(
+	metadataByPath,
+	url,
+	{ currentLocalePath, defaultLocalePath, localePaths, siteUrl },
+) {
+	for (const pathname of getLocalizedLookupCandidates(getUrlPathKey(url), {
+		currentLocalePath,
+		defaultLocalePath,
+		localePaths,
+	})) {
+		const metadata = metadataByPath.get(pathname);
+		if (metadata) {
+			return {
+				...metadata,
+				url: createSiteUrl(metadata.pathname || pathname, siteUrl),
+			};
+		}
+	}
+
+	return null;
+}
+
+function createSiteUrl(pathname, siteUrl) {
+	try {
+		const cleanPath = getUrlPathKey(pathname);
+		const pathWithTrailingSlash =
+			cleanPath === "/" ? "/" : `${cleanPath.replace(/\/+$/, "")}/`;
+		return new URL(pathWithTrailingSlash, siteUrl).href;
+	} catch {
+		return pathname;
+	}
 }
 
 function stripLocaleSuffix(value) {
 	return value.replace(/\.(cn|en|ja|jp|zh|zh-cn|zh-tw)$/i, "");
-}
-
-function expandLocalPathnames(pathname) {
-	const cleanPath = getUrlPathKey(pathname);
-	const pathnames = new Set([cleanPath]);
-
-	for (const locale of ["cn", "en", "jp", "ja"]) {
-		pathnames.add(`/${locale}${cleanPath}`);
-	}
-
-	return pathnames;
 }
 
 function resolveLocalMetadataImage(value) {
