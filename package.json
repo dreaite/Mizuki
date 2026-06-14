@@ -23,7 +23,10 @@
 		"format": "biome format --write ./src",
 		"lint": "biome check --write ./src",
 		"preinstall": "npx only-allow pnpm",
-		"compress-fonts": "node scripts/compress-fonts/index.js"
+		"compress-fonts": "node scripts/compress-fonts/index.js",
+		"gsc:auth": "node scripts/gsc-weekly-report.mjs --auth",
+		"gsc:weekly": "node scripts/gsc-weekly-report.mjs",
+		"gsc:analyze": "bash scripts/gsc-weekly-codex-analysis.sh"
 	},
 	"dependencies": {
 		"@astrojs/check": "^0.9.9",

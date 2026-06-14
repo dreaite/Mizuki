@@ -18,7 +18,11 @@ pnpm-debug.log*
 
 # environment variables
 .env
+.env.local
 .env.production
+
+# local Google Search Console automation
+.gsc/
 
 # content repository (independent mode)
 /content/
