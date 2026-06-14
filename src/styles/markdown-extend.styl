@@ -3,6 +3,9 @@
   p:has(+ a.card-site)
     margin-bottom: 0.25rem
 
+  p:has(+ a.card-x)
+    margin-bottom: 0.25rem
+
   blockquote.admonition
     .bdm-title
       display: flex
@@ -400,6 +403,160 @@ a.card-site
     .sc-media
       order: -1
       min-height: 0
+
+a.card-x
+  display: grid
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 14rem)
+  gap: 0.9rem
+  align-items: stretch
+  margin: 0.35rem 0 0.75rem
+  padding: 1rem 1.1rem
+  color: var(--tw-prose-body)
+  background: var(--license-block-bg)
+  border: 1px solid var(--line-divider)
+  border-radius: var(--radius-large)
+  text-decoration: none
+  overflow: hidden
+
+  &.no-image
+    grid-template-columns: 1fr
+
+    .xc-text
+      -webkit-line-clamp: 5
+
+  &:hover
+    background-color: var(--btn-regular-bg-hover)
+    border-color: var(--primary)
+
+    .xc-title
+      color: var(--btn-content)
+
+    .xc-logo
+      background: var(--primary)
+      color: var(--deep-text)
+
+  &:active
+    scale: .99
+    background-color: var(--btn-regular-bg-active)
+
+  .xc-body
+    display: flex
+    flex-direction: column
+    min-width: 0
+
+  .xc-meta
+    display: flex
+    align-items: center
+    gap: 0.45rem
+    min-width: 0
+    margin-bottom: 0.55rem
+    color: var(--tw-prose-body)
+    font-size: 0.8rem
+    line-height: 1.2
+    opacity: 0.76
+
+  .xc-logo
+    display: inline-flex
+    align-items: center
+    justify-content: center
+    width: 1.25rem
+    height: 1.25rem
+    flex: 0 0 auto
+    border-radius: 0.35rem
+    background: var(--tw-prose-headings)
+    color: var(--license-block-bg)
+    font-size: 0.7rem
+    font-weight: 800
+    line-height: 1
+
+  .xc-author
+    overflow: hidden
+    color: var(--tw-prose-headings)
+    font-weight: 650
+    text-overflow: ellipsis
+    white-space: nowrap
+
+  .xc-handle
+    overflow: hidden
+    max-width: 12rem
+    text-overflow: ellipsis
+    white-space: nowrap
+
+  .xc-kind
+    margin-left: auto
+    padding-left: 0.5rem
+    color: var(--tw-prose-body)
+    font-size: 0.72rem
+    text-transform: uppercase
+    letter-spacing: 0
+    opacity: 0.68
+
+  .xc-title
+    display: -webkit-box
+    overflow: hidden
+    margin-bottom: 0.45rem
+    color: var(--tw-prose-headings)
+    font-size: 1.05rem
+    font-weight: 650
+    line-height: 1.35
+    -webkit-box-orient: vertical
+    -webkit-line-clamp: 2
+
+  .xc-text
+    display: -webkit-box
+    overflow: hidden
+    color: var(--tw-prose-body)
+    font-size: 0.96rem
+    line-height: 1.55
+    opacity: 0.9
+    -webkit-box-orient: vertical
+    -webkit-line-clamp: 4
+    white-space: pre-wrap
+
+  .xc-url
+    overflow: hidden
+    margin-top: 0.75rem
+    color: var(--tw-prose-body)
+    font-size: 0.78rem
+    line-height: 1.2
+    text-overflow: ellipsis
+    white-space: nowrap
+    opacity: 0.62
+
+  .xc-media
+    position: relative
+    align-self: stretch
+    overflow: hidden
+    width: 100%
+    min-height: 7rem
+    aspect-ratio: 4 / 3
+    border-radius: 0.75rem
+    background: var(--btn-regular-bg)
+
+  .xc-image
+    display: block
+    position: absolute
+    inset: 0
+    width: 100%
+    height: 100%
+    margin: 0
+    object-fit: cover
+    cursor: inherit
+
+.card-x, .xc-logo, .xc-title, .xc-text, .xc-media, .xc-image
+  transition-property: color, background-color, border-color, opacity, scale
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1)
+  transition-duration: 0.15s
+
+@media (max-width: 640px)
+  a.card-x
+    grid-template-columns: 1fr
+
+    .xc-media
+      min-height: 0
+
+    .xc-kind
+      margin-left: 0
 
 // Mermaid 图表样式
 .mermaid-diagram-container
