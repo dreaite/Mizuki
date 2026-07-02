@@ -22,6 +22,15 @@ const categories = [
 	...new Set(projectsData.map((project) => project.category)),
 ];
 
+const getProjectStartTime = (startDate: string) => {
+	const timestamp = Date.parse(startDate);
+	return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const sortedProjectsData = [...projectsData].sort(
+	(a, b) => getProjectStartTime(b.startDate) - getProjectStartTime(a.startDate),
+);
+
 const getCategoryText = (category: string) => {
 	switch (category) {
 		case "web":
@@ -100,7 +109,7 @@ const subtitle = i18n(I18nKey.projectsSubtitle);
 				class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start"
 			>
 				{
-					projectsData.map((project) => (
+					sortedProjectsData.map((project) => (
 						<ProjectCard project={project} maxTechStack={4} />
 					))
 				}
