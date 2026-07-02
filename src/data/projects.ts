@@ -9,6 +9,8 @@ export interface Project {
 	category: "web" | "mobile" | "desktop" | "other";
 	techStack: string[];
 	status: "completed" | "in-progress" | "planned";
+	demoUrl?: string;
+	sourceUrl?: string;
 	liveDemo?: string;
 	sourceCode?: string;
 	visitUrl?: string;

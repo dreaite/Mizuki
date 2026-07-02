@@ -9,8 +9,10 @@ const { project, maxTechStack = 4 } = Astro.props as ProjectCardProps;
 
 const hasImage = !!project.image;
 const showImageArea = project.showImage !== false && hasImage;
-const hasVisitUrl = !!project.visitUrl;
-const hasSourceCode = !!project.sourceCode;
+const liveDemoUrl = project.visitUrl || project.liveDemo || project.demoUrl;
+const sourceCodeUrl = project.sourceCode || project.sourceUrl;
+const hasLiveDemo = !!liveDemoUrl;
+const hasSourceCode = !!sourceCodeUrl;
 
 const getStatusText = (status: string) => {
 	switch (status) {
@@ -99,11 +101,11 @@ const getStatusText = (status: string) => {
 		}
 
 		{
-			(hasVisitUrl || hasSourceCode) && (
+			(hasLiveDemo || hasSourceCode) && (
 				<div class="flex gap-2">
-					{hasVisitUrl && (
+					{hasLiveDemo && (
 						<a
-							href={project.visitUrl!}
+							href={liveDemoUrl}
 							target="_blank"
 							rel="noopener noreferrer"
 							class="btn-regular flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
@@ -112,19 +114,19 @@ const getStatusText = (status: string) => {
 								name="material-symbols:open-in-new"
 								class="text-base w-4 h-4"
 							/>
-							{i18n(I18nKey.projectsVisit)}
+							{i18n(I18nKey.projectLiveDemo)}
 						</a>
 					)}
 					{hasSourceCode && (
 						<a
-							href={project.sourceCode!}
+							href={sourceCodeUrl}
 							target="_blank"
 							rel="noopener noreferrer"
 							class="btn-regular flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-							style={hasVisitUrl ? "" : "flex: 1;"}
+							style={hasLiveDemo ? "" : "flex: 1;"}
 						>
 							<Icon name="mdi:github" class="text-base w-4 h-4" />
-							{!hasVisitUrl && "GitHub"}
+							{!hasLiveDemo && "GitHub"}
 						</a>
 					)}
 				</div>
