@@ -277,9 +277,14 @@ export function getLocaleSwitchPath(
 ): string {
 	const { pathname, query, hash } = splitPath(currentPath);
 	const route = stripLocalePrefix(pathname || "/");
-	const targetPath = `/${targetLocalePath}${
-		route.pathWithoutLocale === "/" ? "/" : route.pathWithoutLocale
-	}`;
+	const targetPrefix =
+		targetLocalePath === getDefaultLocaleInfo().path
+			? ""
+			: `/${targetLocalePath}`;
+	const targetPath =
+		route.pathWithoutLocale === "/"
+			? `${targetPrefix}/`
+			: `${targetPrefix}${route.pathWithoutLocale}`;
 	return `${targetPath}${query}${hash}`;
 }
 

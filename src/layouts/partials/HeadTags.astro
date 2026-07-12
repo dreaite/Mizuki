@@ -7,7 +7,12 @@
  */
 
 import { profileConfig, siteConfig } from "@/config";
-import { getDefaultLocaleInfo, stripLocalePrefix } from "@/i18n/locale";
+import {
+	SUPPORTED_LOCALES,
+	getDefaultLocaleInfo,
+	stripLocalePrefix,
+} from "@/i18n/locale";
+import type { LocaleSwitchPathMap } from "@/utils/locale-switch-utils";
 
 import {
 	DARK_MODE,
@@ -29,6 +34,7 @@ interface Props {
 
 	// 配置
 	configHue: number;
+	alternateLocalePaths?: LocaleSwitchPathMap;
 }
 
 const {
@@ -37,6 +43,7 @@ const {
 	ogImageUrl,
 	setOGTypeArticle = false,
 	configHue,
+	alternateLocalePaths = {},
 } = Astro.props;
 
 // 关键词
@@ -55,11 +62,32 @@ if (route.hasLocalePrefix && route.localePath === defaultLocalePath) {
 	canonicalUrl.pathname = route.pathWithoutLocale;
 }
 const canonicalHref = canonicalUrl.toString();
+const alternateLinks = SUPPORTED_LOCALES.flatMap((locale) => {
+	const href = alternateLocalePaths[locale.path];
+	return href
+		? [{ locale, href: new URL(href, Astro.site ?? Astro.url).toString() }]
+		: [];
+});
+const shouldEmitAlternates = alternateLinks.length > 1;
+const defaultAlternateHref = alternateLinks.find(
+	(link) => link.locale.path === defaultLocalePath,
+)?.href;
 ---
 
 <!-- SEO Meta Tags -->
 <title>{title}</title>
 <link rel="canonical" href={canonicalHref} />
+{
+	shouldEmitAlternates &&
+		alternateLinks.map(({ locale, href }) => (
+			<link rel="alternate" hreflang={locale.htmlLang} href={href} />
+		))
+}
+{
+	shouldEmitAlternates && defaultAlternateHref && (
+		<link rel="alternate" hreflang="x-default" href={defaultAlternateHref} />
+	)
+}
 <meta name="description" content={description || title} />
 {
 	keywords && keywords.length > 0 && (

@@ -1,24 +1,23 @@
 ---
-import { getPostUrlBySlug } from "@utils/url-utils";
 import { Icon } from "astro-icon/components";
 
 interface Props {
-	prevSlug?: string;
+	prevUrl?: string;
 	prevTitle?: string;
-	nextSlug?: string;
+	nextUrl?: string;
 	nextTitle?: string;
 	class?: string;
 }
 
 const {
-	prevSlug,
+	prevUrl,
 	prevTitle,
-	nextSlug,
+	nextUrl,
 	nextTitle,
 	class: className,
 } = Astro.props;
 
-const onlyOneButton = (prevSlug && !nextSlug) || (!prevSlug && nextSlug);
+const onlyOneButton = (prevUrl && !nextUrl) || (!prevUrl && nextUrl);
 ---
 
 <div
@@ -29,9 +28,9 @@ const onlyOneButton = (prevSlug && !nextSlug) || (!prevSlug && nextSlug);
 	]}
 >
 	{
-		prevSlug && (
-			<a
-				href={getPostUrlBySlug(prevSlug)}
+		prevUrl && (
+				<a
+				href={prevUrl}
 				class="w-full font-bold overflow-hidden active:scale-95"
 			>
 				<div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-start gap-4">
@@ -48,9 +47,9 @@ const onlyOneButton = (prevSlug && !nextSlug) || (!prevSlug && nextSlug);
 	}
 
 	{
-		nextSlug && (
-			<a
-				href={getPostUrlBySlug(nextSlug)}
+		nextUrl && (
+				<a
+				href={nextUrl}
 				class="w-full font-bold overflow-hidden active:scale-95"
 			>
 				<div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-end gap-4">

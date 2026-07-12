@@ -44,6 +44,26 @@ const sitemapLocaleAliases = {
 };
 const defaultSitemapLocale = siteConfig.i18n?.defaultLocale || "cn";
 const buildOutputDir = path.join(process.cwd(), "dist");
+const sitemapLocalePaths = new Set(Object.keys(sitemapLocaleAliases));
+const disabledFeaturePages = new Set(
+	Object.entries(siteConfig.featurePages)
+		.filter(([, enabled]) => enabled === false)
+		.map(([slug]) => slug),
+);
+
+function stripSitemapLocale(pathname) {
+	const segments = pathname.split("/").filter(Boolean);
+	if (segments[0] && sitemapLocalePaths.has(segments[0])) {
+		return `/${segments.slice(1).join("/")}${pathname.endsWith("/") ? "/" : ""}`;
+	}
+	return pathname;
+}
+
+function isDisabledFeaturePath(pathname) {
+	const routePathname = stripSitemapLocale(pathname);
+	const firstSegment = routePathname.split("/").filter(Boolean)[0];
+	return !!firstSegment && disabledFeaturePages.has(firstSegment);
+}
 
 function hasBuiltIndexPage(pathname) {
 	const normalizedPathname = decodeURIComponent(pathname)
@@ -54,8 +74,9 @@ function hasBuiltIndexPage(pathname) {
 
 function shouldIncludeInSitemap(page) {
 	const pathname = new URL(page).pathname;
+	const routePathname = stripSitemapLocale(pathname);
 
-	if (pathname.startsWith("/api/")) {
+	if (routePathname.startsWith("/api/") || isDisabledFeaturePath(pathname)) {
 		return false;
 	}
 

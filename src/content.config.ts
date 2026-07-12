@@ -37,8 +37,10 @@ const postsCollection = defineCollection({
 		/* For internal use */
 		prevTitle: z.string().default(""),
 		prevSlug: z.string().default(""),
+		prevUrl: z.string().default(""),
 		nextTitle: z.string().default(""),
 		nextSlug: z.string().default(""),
+		nextUrl: z.string().default(""),
 	}),
 });
 const specCollection = defineCollection({

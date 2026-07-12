@@ -4,6 +4,8 @@ import { i18n } from "@i18n/translation";
 import {
 	getCurrentLocaleContext,
 	getCurrentLocalePath,
+	getDefaultLocaleInfo,
+	type SupportedLocalePath,
 	withLocalePrefix,
 } from "@i18n/locale";
 
@@ -42,32 +44,44 @@ export function getPostUrlByAlias(alias: string): string {
 	return localizedUrl(`/posts/${cleanAlias}/`);
 }
 
-export function getPostUrl(post: CollectionEntry<"posts">): string;
-export function getPostUrl(post: {
+type PostUrlSource = {
 	id: string;
-	data: { alias?: string; permalink?: string };
-}): string;
-// biome-ignore lint/suspicious/noExplicitAny: overload union
-export function getPostUrl(post: any): string {
-	// 如果文章有自定义 permalink，优先使用（在根目录下）
+	filePath?: string | null;
+	data: { alias?: string; permalink?: string; lang?: string | null };
+};
+
+function getPostPath(post: PostUrlSource): string {
 	if (post.data.permalink) {
 		const slug = post.data.permalink.replace(/^\/+/, "").replace(/\/+$/, "");
-		return localizedUrl(`/${slug}/`);
+		return `/${slug}/`;
 	}
 
-	// 如果全局 permalink 功能启用，使用生成的 slug（在根目录下）
 	if (permalinkConfig.enable) {
-		const slug = generatePermalinkSlug(post);
-		return localizedUrl(`/${slug}/`);
+		const slug = generatePermalinkSlug(post as CollectionEntry<"posts">);
+		return `/${slug}/`;
 	}
 
-	// 如果文章有 alias，使用 alias（在 /posts/ 下）
 	if (post.data.alias) {
-		return getPostUrlByAlias(post.data.alias);
+		const cleanAlias = post.data.alias.replace(/^\/+/, "");
+		return `/posts/${cleanAlias}/`;
 	}
 
-	// 否则使用默认的 slug 路径
-	return localizedUrl(`/posts/${getCanonicalPostSlugFromId(post)}/`);
+	return `/posts/${getCanonicalPostSlugFromId(post)}/`;
+}
+
+export function getPostUrlForLocale(
+	post: PostUrlSource,
+	localePath: SupportedLocalePath,
+): string {
+	const usePrefix = localePath !== getDefaultLocaleInfo().path;
+	return url(withLocalePrefix(getPostPath(post), localePath, usePrefix));
+}
+
+export function getPostUrl(post: CollectionEntry<"posts">): string;
+export function getPostUrl(post: PostUrlSource): string;
+// biome-ignore lint/suspicious/noExplicitAny: overload union
+export function getPostUrl(post: any): string {
+	return localizedUrl(getPostPath(post));
 }
 
 export function getTagUrl(tag: string): string {

@@ -221,9 +221,12 @@ const languageOptions = SUPPORTED_LOCALES.map((locale) => ({
 			}
 
 			const route = stripLocaleFromPathname(window.location.pathname);
-			const targetPath = `/${targetLocalePath}${
-				route.pathWithoutLocale === "/" ? "/" : route.pathWithoutLocale
-			}`;
+			const targetPrefix =
+				targetLocalePath === defaultLocalePath ? "" : `/${targetLocalePath}`;
+			const targetPath =
+				route.pathWithoutLocale === "/"
+					? `${targetPrefix}/`
+					: `${targetPrefix}${route.pathWithoutLocale}`;
 			return `${targetPath}${window.location.search}${window.location.hash}`;
 		}
 

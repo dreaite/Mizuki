@@ -5,6 +5,7 @@ import {
 } from "../i18n/locale";
 import { getSortedPosts } from "./content-utils";
 import { getCanonicalPostSlugFromId } from "./post-variant-utils";
+import { getPostUrlForLocale } from "./url-utils";
 
 export type LocaleSwitchPathMap = Partial<Record<SupportedLocalePath, string>>;
 type PostVariantSource =
@@ -21,7 +22,9 @@ function splitPath(path: string) {
 	const withoutHash = hashIndex >= 0 ? path.slice(0, hashIndex) : path;
 	const queryIndex = withoutHash.indexOf("?");
 	const query = queryIndex >= 0 ? withoutHash.slice(queryIndex) : "";
-	return { query, hash };
+	const pathname =
+		queryIndex >= 0 ? withoutHash.slice(0, queryIndex) : withoutHash;
+	return { pathname: pathname || "/", query, hash };
 }
 
 function appendSuffix(pathname: string, currentPath: string) {
@@ -30,31 +33,37 @@ function appendSuffix(pathname: string, currentPath: string) {
 }
 
 function localeHomePath(localePath: SupportedLocalePath, currentPath: string) {
-	return appendSuffix(`/${localePath}/`, currentPath);
+	return appendSuffix(getLocaleSwitchPath("/", localePath), currentPath);
 }
 
-function localePostPath(
-	localePath: SupportedLocalePath,
-	canonicalSlug: string,
-	currentPath: string,
-) {
-	const cleanSlug = canonicalSlug.replace(/^\/+/, "").replace(/\/+$/, "");
-	return appendSuffix(`/${localePath}/posts/${cleanSlug}/`, currentPath);
+export interface LocaleRouteMaps {
+	localeSwitchPaths: LocaleSwitchPathMap;
+	alternateLocalePaths: LocaleSwitchPathMap;
 }
 
-export async function getLocaleSwitchPaths(
+export async function getLocaleRouteMaps(
 	currentPath: string,
 	post?: PostVariantSource | null,
-): Promise<LocaleSwitchPathMap> {
+): Promise<LocaleRouteMaps> {
+	const { pathname } = splitPath(currentPath);
 	const fallbackPaths = Object.fromEntries(
 		SUPPORTED_LOCALES.map((locale) => [
 			locale.path,
 			getLocaleSwitchPath(currentPath, locale.path),
 		]),
 	) as LocaleSwitchPathMap;
+	const alternateLocalePaths = Object.fromEntries(
+		SUPPORTED_LOCALES.map((locale) => [
+			locale.path,
+			getLocaleSwitchPath(pathname, locale.path),
+		]),
+	) as LocaleSwitchPathMap;
 
 	if (!post) {
-		return fallbackPaths;
+		return {
+			localeSwitchPaths: fallbackPaths,
+			alternateLocalePaths,
+		};
 	}
 
 	const canonicalSlug =
@@ -69,13 +78,28 @@ export async function getLocaleSwitchPaths(
 	);
 
 	for (const { locale, posts } of localizedPostEntries) {
-		const hasLocalizedPost = posts.some(
+		const localizedPost = posts.find(
 			(post) => getCanonicalPostSlugFromId(post) === canonicalSlug,
 		);
-		fallbackPaths[locale.path] = hasLocalizedPost
-			? localePostPath(locale.path, canonicalSlug, currentPath)
-			: localeHomePath(locale.path, currentPath);
+		if (localizedPost) {
+			const exactPath = getPostUrlForLocale(localizedPost, locale.path);
+			fallbackPaths[locale.path] = appendSuffix(exactPath, currentPath);
+			alternateLocalePaths[locale.path] = exactPath;
+		} else {
+			fallbackPaths[locale.path] = localeHomePath(locale.path, currentPath);
+			delete alternateLocalePaths[locale.path];
+		}
 	}
 
-	return fallbackPaths;
+	return {
+		localeSwitchPaths: fallbackPaths,
+		alternateLocalePaths,
+	};
+}
+
+export async function getLocaleSwitchPaths(
+	currentPath: string,
+	post?: PostVariantSource | null,
+): Promise<LocaleSwitchPathMap> {
+	return (await getLocaleRouteMaps(currentPath, post)).localeSwitchPaths;
 }

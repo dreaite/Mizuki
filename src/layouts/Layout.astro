@@ -14,6 +14,7 @@ import {
 	isLocalizedHomePath,
 	setCurrentLocaleContextFromPath,
 } from "../i18n/locale";
+import type { LocaleSwitchPathMap } from "../utils/locale-switch-utils";
 import "../styles/main.css";
 import "../styles/markdown-extend.styl";
 import "../styles/mobile-navbar.css";
@@ -34,6 +35,7 @@ interface Props {
 	setOGTypeArticle?: boolean;
 	postSlug?: string;
 	coverImage?: string;
+	alternateLocalePaths?: LocaleSwitchPathMap;
 }
 
 let {
@@ -44,6 +46,7 @@ let {
 	setOGTypeArticle,
 	postSlug,
 	coverImage,
+	alternateLocalePaths = {},
 } = Astro.props;
 
 const routeLocale = setCurrentLocaleContextFromPath(Astro.url.pathname);
@@ -198,6 +201,7 @@ if (siteConfig.font) {
 			ogImageUrl={ogImageUrl}
 			setOGTypeArticle={setOGTypeArticle}
 			configHue={configHue}
+			alternateLocalePaths={alternateLocalePaths}
 		/>
 
 		<!-- defines global css variables. This will be applied to <html> <body> and some other elements idk why -->

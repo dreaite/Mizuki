@@ -216,7 +216,7 @@ function parsePost(filePath, defaultLang) {
 	);
 	const draft = readFrontmatterValue(frontmatter, "draft").toLowerCase() === "true";
 
-	if (draft || !isDefaultLanguagePost(variantLang, defaultLang)) {
+	if (draft) {
 		return null;
 	}
 
@@ -224,6 +224,8 @@ function parsePost(filePath, defaultLang) {
 		filePath,
 		canonicalSlug,
 		rawPostname,
+		variantLang,
+		isDefaultLanguage: isDefaultLanguagePost(variantLang, defaultLang),
 		permalink: normalizeSlug(readFrontmatterValue(frontmatter, "permalink")),
 		alias: normalizeAlias(readFrontmatterValue(frontmatter, "alias")),
 		category: readFrontmatterValue(frontmatter, "category") || "uncategorized",
@@ -279,7 +281,8 @@ function generateRules() {
 	const posts = walkMarkdownFiles(POSTS_DIR)
 		.map((filePath) => parsePost(filePath, defaultLang))
 		.filter(Boolean);
-	const sortedPosts = [...posts].sort(
+	const defaultPosts = posts.filter((post) => post.isDefaultLanguage);
+	const sortedPosts = [...defaultPosts].sort(
 		(a, b) => a.published.getTime() - b.published.getTime(),
 	);
 	const postIds = new Map(
@@ -287,17 +290,16 @@ function generateRules() {
 	);
 	const exactRules = new Map();
 
-	for (const post of posts) {
+	for (const post of defaultPosts) {
+		const postNumericId = postIds.get(post.filePath) ?? 0;
 		const permalink = generatePermalink(
 			post,
 			permalinkConfig,
-			postIds.get(post.filePath) ?? 0,
+			postNumericId,
 		);
-		if (!permalink) {
-			continue;
-		}
-
-		const destination = withTrailingSlash(`/${permalink}`);
+		const destination = permalink
+			? withTrailingSlash(`/${permalink}`)
+			: withTrailingSlash(`/posts/${post.alias || post.canonicalSlug}`);
 		const sourceSlugs = new Set([post.canonicalSlug]);
 		if (post.alias) {
 			sourceSlugs.add(post.alias);
@@ -313,6 +315,52 @@ function generateRules() {
 				addRedirect(exactRules, localizedPostPath, destination);
 				addRedirect(exactRules, localizedPostPath.replace(/\/$/, ""), destination);
 			}
+		}
+
+		if (postNumericId > 0) {
+			const numericPath = withTrailingSlash(`/${postNumericId}`);
+			addRedirect(exactRules, numericPath, destination);
+			addRedirect(exactRules, numericPath.replace(/\/$/, ""), destination);
+
+			if (defaultLocale) {
+				const localizedNumericPath = withTrailingSlash(
+					`/${defaultLocale}${numericPath}`,
+				);
+				addRedirect(exactRules, localizedNumericPath, destination);
+				addRedirect(
+					exactRules,
+					localizedNumericPath.replace(/\/$/, ""),
+					destination,
+				);
+			}
+		}
+	}
+
+	for (const post of posts.filter((entry) => !entry.isDefaultLanguage)) {
+		const normalizedLang = normalizeLanguageCode(post.variantLang);
+		const localePath =
+			normalizedLang === "en" ? "en" : normalizedLang === "ja" ? "jp" : "";
+		if (!localePath) {
+			continue;
+		}
+
+		const destination = post.permalink
+			? withTrailingSlash(`/${localePath}/${post.permalink}`)
+			: withTrailingSlash(
+					`/${localePath}/posts/${post.alias || post.canonicalSlug}`,
+				);
+		const flattenedSuffix = localePath === "en" ? "en" : "ja";
+		const malformedSlug = `${post.canonicalSlug}${flattenedSuffix}`;
+		const legacyPaths = [
+			`/${localePath}/posts/${malformedSlug}`,
+			`/posts/${malformedSlug}`,
+			`/${localePath}/${post.canonicalSlug}`,
+		];
+
+		for (const legacyPath of legacyPaths) {
+			const withSlash = withTrailingSlash(legacyPath);
+			addRedirect(exactRules, withSlash, destination);
+			addRedirect(exactRules, withSlash.replace(/\/$/, ""), destination);
 		}
 	}
 

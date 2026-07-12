@@ -22,7 +22,7 @@ import {
 	getTransparencyClass,
 	shouldEnableTransparency,
 } from "../utils/grid-layout-utils";
-import { getLocaleSwitchPaths } from "../utils/locale-switch-utils";
+import { getLocaleRouteMaps } from "../utils/locale-switch-utils";
 import { widgetManager } from "../utils/widget-manager";
 import Layout from "./Layout.astro";
 import GridScripts from "./partials/GridScripts.astro";
@@ -93,7 +93,7 @@ const transparentClass = getTransparencyClass(shouldEnable);
 
 // 布局模式
 const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
-const localeSwitchPaths = await getLocaleSwitchPaths(
+const { localeSwitchPaths, alternateLocalePaths } = await getLocaleRouteMaps(
 	Astro.url.pathname + Astro.url.search,
 	postEntry ?? postSlug,
 );
@@ -107,6 +107,7 @@ const localeSwitchPaths = await getLocaleSwitchPaths(
 	setOGTypeArticle={setOGTypeArticle}
 	postSlug={postSlug}
 	coverImage={coverImage}
+	alternateLocalePaths={alternateLocalePaths}
 >
 	<GridScripts
 		navbarTransparentMode={siteConfig.banner?.navbar?.transparentMode ||

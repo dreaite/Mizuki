@@ -1,8 +1,13 @@
 import { type CollectionEntry, getCollection } from "astro:content";
 import I18nKey from "@i18n/i18nKey";
+import { getCurrentLocaleLang, getLocaleInfoByLang } from "@i18n/locale";
 import { i18n } from "@i18n/translation";
 import { initPostIdMap } from "@utils/permalink-utils";
-import { getCategoryUrl, getPostUrl } from "@utils/url-utils";
+import {
+	getCategoryUrl,
+	getPostUrl,
+	getPostUrlForLocale,
+} from "@utils/url-utils";
 import {
 	type PostVariantGroup,
 	filterPostVariantsByLanguage,
@@ -126,21 +131,34 @@ export async function getSortedPostGroups(
 export async function getSortedPosts(preferredLang?: string | null) {
 	const groups = await getSortedPostGroups(preferredLang);
 	const sorted = groups.map((group) => group.defaultEntry);
+	const localePath = getLocaleInfoByLang(
+		preferredLang || getCurrentLocaleLang(),
+	).path;
 
 	for (const post of sorted) {
 		post.data.prevSlug = "";
 		post.data.prevTitle = "";
+		post.data.prevUrl = "";
 		post.data.nextSlug = "";
 		post.data.nextTitle = "";
+		post.data.nextUrl = "";
 	}
 
 	for (let i = 1; i < sorted.length; i++) {
 		sorted[i].data.nextSlug = sorted[i - 1].id;
 		sorted[i].data.nextTitle = sorted[i - 1].data.title;
+		sorted[i].data.nextUrl = getPostUrlForLocale(
+			sorted[i - 1],
+			localePath,
+		);
 	}
 	for (let i = 0; i < sorted.length - 1; i++) {
 		sorted[i].data.prevSlug = sorted[i + 1].id;
 		sorted[i].data.prevTitle = sorted[i + 1].data.title;
+		sorted[i].data.prevUrl = getPostUrlForLocale(
+			sorted[i + 1],
+			localePath,
+		);
 	}
 
 	return sorted;

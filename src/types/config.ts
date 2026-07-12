@@ -331,8 +331,10 @@ export interface BlogPostData {
 	pinned?: boolean;
 	prevTitle?: string;
 	prevSlug?: string;
+	prevUrl?: string;
 	nextTitle?: string;
 	nextSlug?: string;
+	nextUrl?: string;
 }
 
 export interface ExpressiveCodeConfig {

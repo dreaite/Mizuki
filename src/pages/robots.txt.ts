@@ -3,6 +3,10 @@ import type { APIRoute } from "astro";
 const robotsTxt = `
 User-agent: *
 Disallow: /api/
+Disallow: /cn/api/
+Disallow: /en/api/
+Disallow: /jp/api/
+Disallow: /cdn-cgi/
 Allow: /
 
 Sitemap: ${new URL("sitemap-index.xml", import.meta.env.SITE).href}
@@ -15,4 +19,3 @@ export const GET: APIRoute = () => {
 		},
 	});
 };
-

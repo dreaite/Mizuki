@@ -17,7 +17,7 @@ import RssPage from "../rss.astro";
 import SkillsPage from "../skills.astro";
 import TimelinePage from "../timeline.astro";
 
-import { permalinkConfig } from "../../config";
+import { permalinkConfig, siteConfig } from "../../config";
 import {
 	SUPPORTED_LOCALES,
 	type SupportedLocalePath,
@@ -78,12 +78,21 @@ export async function getStaticPaths() {
 		params: { locale: string; localized: string };
 		props: LocalizedProps;
 	}[] = [];
-	const albums = await scanAlbums();
+	const albums = siteConfig.featurePages.albums ? await scanAlbums() : [];
+	const featurePageFlags = siteConfig.featurePages;
+	const isEnabled = (slug: string) => {
+		const configured =
+			featurePageFlags[slug as keyof typeof featurePageFlags];
+		return configured !== false;
+	};
 
 	for (const locale of SUPPORTED_LOCALES) {
 		setCurrentLocaleContext(locale.path, true);
 
 		for (const [slug, kind] of Object.entries(staticPages)) {
+			if (!isEnabled(slug)) {
+				continue;
+			}
 			paths.push({
 				params: { locale: locale.path, localized: slug },
 				props: { localePath: locale.path, kind },
