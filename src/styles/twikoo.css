@@ -65,15 +65,16 @@ html.dark {
 
 /* Comment title */
 .tk-comments-title {
-  .__comments svg {
-    @apply fill-(--primary);
+  .tk-icon,
+  .tk-icon.__comments {
+    color: var(--primary);
   }
 }
 
 .tk-comment {
   @apply border-[1px] border-[rgba(144,147,153,0.31)] p-4 rounded-2xl hover:shadow-md transition-all;
-  .tk-action-icon svg {
-    @apply fill-(--primary);
+  .tk-action-icon {
+    color: var(--primary);
   }
 }
 
@@ -266,4 +267,8 @@ html.dark .twikoo select option {
 .tk-admin {
   @apply !rounded-lg;
   clip-path: inset(0 round 0.5rem) !important;
+}
+
+.el-loading-spinner .path {
+  stroke: var(--primary) !important;
 }

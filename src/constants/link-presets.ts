@@ -1,3 +1,6 @@
+import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
+
 import { LinkPreset, type NavBarLink } from "@/types/config";
 
 export const LinkPresets: Record<LinkPreset, NavBarLink> = {
@@ -50,5 +53,10 @@ export const LinkPresets: Record<LinkPreset, NavBarLink> = {
 		name: "Timeline",
 		url: "/timeline/",
 		icon: "material-symbols:timeline",
+	},
+	[LinkPreset.AITools]: {
+		name: i18n(I18nKey.aiTools),
+		url: "/ai-tools/",
+		icon: "material-symbols:smart-toy",
 	},
 };

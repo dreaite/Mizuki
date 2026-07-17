@@ -204,13 +204,13 @@ onDestroy(() => {
 
 {#if shouldRenderFloatingUi}
 	{#if state.showError}
-		<div class="fixed bottom-20 right-4 z-[60] max-w-sm">
+		<div class="fixed bottom-20 right-4 z-60 max-w-sm">
 			<div
 				class="bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slide-up"
 			>
 				<Icon
 					icon="material-symbols:error"
-					class="text-xl flex-shrink-0"
+					class="text-xl shrink-0"
 				/>
 				<span class="text-sm flex-1">{state.errorMessage}</span>
 				<button
@@ -225,7 +225,7 @@ onDestroy(() => {
 
 	{#if useFabEntry}
 		{#if state.isExpanded}
-			<div class="music-player-fab-anchor fixed z-[55]">
+			<div class="music-player-fab-anchor fixed z-55">
 				<div
 					class="music-player-fab-shell"
 					transition:fly={{
@@ -476,7 +476,7 @@ onDestroy(() => {
 			transition: transform 0.2s ease;
 		}
 
-		@media (max-width: 768px) {
+		@media (width < 768px) {
 			.music-player-fab-anchor {
 				right: var(--fab-group-right, 0.75rem) !important;
 				bottom: calc(
@@ -535,7 +535,7 @@ onDestroy(() => {
 			}
 		}
 
-		@media (max-width: 480px) {
+		@media (width < 480px) {
 			.music-player-fab-anchor {
 				right: var(--fab-group-right, 0.5rem) !important;
 				bottom: calc(

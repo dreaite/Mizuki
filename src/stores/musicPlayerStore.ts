@@ -168,6 +168,7 @@ class MusicPlayerStore {
 				this.audio.currentTime = 0;
 				this.audio.play().catch(() => {});
 			}
+			this.broadcastState();
 		} else {
 			this.next(true);
 		}
@@ -347,7 +348,7 @@ class MusicPlayerStore {
 	}
 
 	private loadSong(song: Song, autoPlay = true): void {
-		if (!song) {
+		if (!song || !song.url) {
 			return;
 		}
 		if (song.url !== this.state.currentSong.url) {
@@ -403,7 +404,7 @@ class MusicPlayerStore {
 	}
 
 	pause(): void {
-		if (!this.audio) {
+		if (!this.audio || !this.state.currentSong.url) {
 			return;
 		}
 		this.audio.pause();
@@ -454,7 +455,7 @@ class MusicPlayerStore {
 	}
 
 	seek(time: number): void {
-		if (!this.audio) {
+		if (!this.audio || !this.state.currentSong.url) {
 			return;
 		}
 		if (time >= 0 && time <= this.state.duration) {
@@ -547,7 +548,7 @@ class MusicPlayerStore {
 	}
 
 	setProgress(percent: number): void {
-		if (!this.audio) {
+		if (!this.audio || !this.state.currentSong.url) {
 			return;
 		}
 		const newTime = percent * this.state.duration;

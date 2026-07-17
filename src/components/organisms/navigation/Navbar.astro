@@ -6,19 +6,17 @@ import { Icon } from "astro-icon/components";
 import { navBarConfig, siteConfig } from "../../../config";
 import { LinkPresets } from "../../../constants/link-presets";
 import {
-	SUPPORTED_LOCALES,
 	getCurrentLocalePath,
 	getDefaultLocaleInfo,
 	getLocaleSwitchPath,
 	isLocalizedHomePath,
+	SUPPORTED_LOCALES,
 } from "../../../i18n/locale";
 import { LinkPreset, type NavBarLink } from "../../../types/config";
 import type { LocaleSwitchPathMap } from "../../../utils/locale-switch-utils";
 import { localizedUrl, url } from "../../../utils/url-utils";
-import LayoutSwitch from "../../control/LayoutSwitch.svelte";
 import ThemeSwitch from "../../control/ThemeSwitch.svelte";
-import DisplaySettings from "../../features/settings/DisplaySettings.svelte";
-import WallpaperSwitch from "../../features/settings/WallpaperSwitch.svelte";
+import SettingsPanel from "../../features/settings/SettingsPanel.svelte";
 import MobileTOC from "../../features/toc/MobileTOC.svelte";
 import DropdownMenu from "./DropdownMenu.astro";
 import NavMenuPanel from "./NavMenuPanel.astro";
@@ -35,11 +33,6 @@ const { class: className, localeSwitchPaths = {} } = Astro.props as Props;
 const navbarTransparentMode =
 	siteConfig.banner?.navbar?.transparentMode || "semi";
 
-// 获取整体布局方案切换按钮显示设置
-const modeSwitchDisplay =
-	siteConfig.wallpaperMode?.showModeSwitchOnMobile || "desktop";
-
-// 检查是否为首页
 const isHomePage = isLocalizedHomePath(Astro.url.pathname);
 
 // featurePage URL -> config key mapping
@@ -53,6 +46,7 @@ const featurePageUrlMap: Record<string, string> = {
 	"/timeline/": "timeline",
 	"/albums/": "albums",
 	"/devices/": "devices",
+	"/ai-tools/": "aiTools",
 };
 
 function isFeaturePageDisabled(url: string): boolean {
@@ -187,18 +181,15 @@ const languageOptions = SUPPORTED_LOCALES.map((locale) => ({
             })}
         </div>
         <div class="flex items-center gap-1">
-            <div id="search-container">
-                <Search client:only="svelte"></Search>
-            </div>
-            {/* 只在 sidebar 模式下显示移动端 TOC 按钮 */}
+			<div id="search-container">
+				<Search client:only="svelte"></Search>
+			</div>
+			{/* 只在 sidebar 模式下显示移动端 TOC 按钮 */}
 			{siteConfig.toc.enable && siteConfig.toc.mobileTop && <MobileTOC client:only="svelte"></MobileTOC>}
-            {!siteConfig.themeColor.fixed && (
-                    <button aria-label="Display Settings" class="btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90" id="display-settings-switch">
-                        <Icon name="material-symbols:palette-outline" class="text-[1.25rem]"></Icon>
-                    </button>
-            )}
-            <LayoutSwitch client:only="svelte" currentLayout={siteConfig.postListLayout.defaultMode}></LayoutSwitch>
-            <div class="language-switcher hidden sm:block relative group" data-language-switcher>
+			<button aria-label="Display Settings" class="btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90" id="display-settings-switch">
+				<Icon name="material-symbols:palette-outline" class="text-[1.25rem]"></Icon>
+			</button>
+			<div class="language-switcher hidden sm:block relative group" data-language-switcher>
                 <button
                     aria-label="Language"
                     aria-haspopup="true"
@@ -236,26 +227,17 @@ const languageOptions = SUPPORTED_LOCALES.map((locale) => ({
                                 ></Icon>
                             </a>
                         ))}
-                    </div>
-                </div>
-            </div>
-            <!-- 整体布局方案切换按钮：根据配置决定在哪些设备上显示 -->
-            <div class:list={[
-                modeSwitchDisplay === "off" ? "hidden" :
-                modeSwitchDisplay === "mobile" ? "block md:hidden" :
-                modeSwitchDisplay === "desktop" ? "hidden md:block" :
-                modeSwitchDisplay === "both" ? "block" : "hidden md:block"
-            ]}>
-                <WallpaperSwitch client:only="svelte"></WallpaperSwitch>
-            </div>
-            <ThemeSwitch client:only="svelte"></ThemeSwitch>
+					</div>
+				</div>
+			</div>
+			<ThemeSwitch client:only="svelte"></ThemeSwitch>
             <button aria-label="Menu" name="Nav Menu" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90 md:!hidden" id="nav-menu-switch">
                 <Icon name="material-symbols:unfold-more" class="text-[1.25rem]"></Icon>
             </button>
         </div>
-        <NavMenuPanel links={links} localeSwitchPaths={localeSwitchPaths}></NavMenuPanel>
-        <DisplaySettings client:only="svelte"></DisplaySettings>
-    </div>
+		<NavMenuPanel links={links} localeSwitchPaths={localeSwitchPaths}></NavMenuPanel>
+		<SettingsPanel client:only="svelte"></SettingsPanel>
+	</div>
 </div>
 
 <script>
@@ -452,46 +434,40 @@ const languageOptions = SUPPORTED_LOCALES.map((locale) => ({
 		}
 	}
 
-async function loadButtonScript() {
-    try {
-        const { panelManager } = await import('../../../utils/panel-manager.js');
-        
-        const settingBtn = document.getElementById("display-settings-switch");
-        if (settingBtn) {
-            settingBtn.onclick = async function () {
-                await panelManager.togglePanel('display-setting');
-            };
-        }
-
-        const menuBtn = document.getElementById("nav-menu-switch");
-        if (menuBtn) {
-            menuBtn.onclick = async function () {
-                await panelManager.togglePanel('nav-menu-panel');
-            };
-        }
-    } catch (error) {
-        console.error('Failed to load panel manager:', error);
-        // 备用逻辑
-        const settingBtn = document.getElementById("display-settings-switch");
-        if (settingBtn) {
-            settingBtn.onclick = function () {
-                const settingPanel = document.getElementById("display-setting");
-                if (settingPanel) {
-                    settingPanel.classList.toggle("float-panel-closed");
-                }
-            };
-        }
-
-        const menuBtn = document.getElementById("nav-menu-switch");
-        if (menuBtn) {
-            menuBtn.onclick = function () {
-                const menuPanel = document.getElementById("nav-menu-panel");
-                if (menuPanel) {
-                    menuPanel.classList.toggle("float-panel-closed");
-                }
-            };
-        }
+function loadButtonScript() {
+    let settingBtn = document.getElementById("display-settings-switch");
+    if (settingBtn) {
+        settingBtn.onclick = function () {
+            let settingPanel = document.getElementById("display-setting");
+            if (settingPanel) {
+                settingPanel.classList.toggle("float-panel-closed");
+            }
+        };
     }
+
+    let menuBtn = document.getElementById("nav-menu-switch");
+    if (menuBtn) {
+        menuBtn.onclick = function () {
+            let menuPanel = document.getElementById("nav-menu-panel");
+            if (menuPanel) {
+                menuPanel.classList.toggle("float-panel-closed");
+            }
+        };
+    }
+
+    document.addEventListener("click", function(event) {
+        const panels = ["display-setting", "nav-menu-panel"];
+        const buttons = ["display-settings-switch", "nav-menu-switch"];
+        panels.forEach((id, index) => {
+            const panel = document.getElementById(id);
+            const button = document.getElementById(buttons[index]);
+            if (panel && button && !panel.classList.contains("float-panel-closed")) {
+                if (event.target instanceof Node && !panel.contains(event.target) && !button.contains(event.target)) {
+                    panel.classList.add("float-panel-closed");
+                }
+            }
+        });
+    });
 }
 
 loadButtonScript();
@@ -603,10 +579,11 @@ if (document.readyState === 'loading') {
 	}
 </style>
 
-{import.meta.env.PROD && <script is:inline define:vars={{scriptUrl: url('/pagefind/pagefind.js')}}>
+<script is:inline>
 window.loadPagefind = async function() {
     if (window.pagefind) {return;}
     try {
+        const scriptUrl = new URL('pagefind/pagefind.js', window.location.origin).href;
         const response = await fetch(scriptUrl, { method: 'HEAD' });
         if (!response.ok) {
             throw new Error(`Pagefind script not found: ${response.status}`);
@@ -632,4 +609,4 @@ window.loadPagefind = async function() {
         console.log('Pagefind load error, event dispatched.');
     }
 };
-</script>}
+</script>

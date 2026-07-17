@@ -1,22 +1,5 @@
 ---
 import type { CollectionEntry } from "astro:content";
-import AboutPage from "../about.astro";
-import AlbumsPage from "../albums.astro";
-import AlbumPage from "../albums/[id]/index.astro";
-import AnimePage from "../anime.astro";
-import ArchivePage from "../archive.astro";
-import AtomPage from "../atom.astro";
-import DevicesPage from "../devices.astro";
-import DiaryPage from "../diary.astro";
-import ErogePage from "../eroge.astro";
-import FriendsPage from "../friends.astro";
-import PermalinkPage from "../[...permalink].astro";
-import PostPage from "../posts/[...slug].astro";
-import ProjectsPage from "../projects.astro";
-import RssPage from "../rss.astro";
-import SkillsPage from "../skills.astro";
-import TimelinePage from "../timeline.astro";
-
 import { permalinkConfig, siteConfig } from "../../config";
 import {
 	SUPPORTED_LOCALES,
@@ -32,6 +15,23 @@ import {
 	initPostIdMap,
 } from "../../utils/permalink-utils";
 import { getCanonicalPostSlugFromId } from "../../utils/post-variant-utils";
+import PermalinkPage from "../[...permalink].astro";
+import AboutPage from "../about.astro";
+import AIToolsPage from "../ai-tools.astro";
+import AlbumPage from "../albums/[id]/index.astro";
+import AlbumsPage from "../albums.astro";
+import AnimePage from "../anime.astro";
+import ArchivePage from "../archive.astro";
+import AtomPage from "../atom.astro";
+import DevicesPage from "../devices.astro";
+import DiaryPage from "../diary.astro";
+import ErogePage from "../eroge.astro";
+import FriendsPage from "../friends.astro";
+import PostPage from "../posts/[...slug].astro";
+import ProjectsPage from "../projects.astro";
+import RssPage from "../rss.astro";
+import SkillsPage from "../skills.astro";
+import TimelinePage from "../timeline.astro";
 
 type PageKind =
 	| "archive"
@@ -46,6 +46,7 @@ type PageKind =
 	| "skills"
 	| "timeline"
 	| "devices"
+	| "aiTools"
 	| "rss"
 	| "atom"
 	| "post"
@@ -71,6 +72,7 @@ export async function getStaticPaths() {
 		skills: "skills",
 		timeline: "timeline",
 		devices: "devices",
+		"ai-tools": "aiTools",
 		rss: "rss",
 		atom: "atom",
 	};
@@ -80,9 +82,13 @@ export async function getStaticPaths() {
 	}[] = [];
 	const albums = siteConfig.featurePages.albums ? await scanAlbums() : [];
 	const featurePageFlags = siteConfig.featurePages;
+	const featurePageSlugKeys: Record<string, keyof typeof featurePageFlags> = {
+		"ai-tools": "aiTools",
+	};
 	const isEnabled = (slug: string) => {
-		const configured =
-			featurePageFlags[slug as keyof typeof featurePageFlags];
+		const key =
+			featurePageSlugKeys[slug] ?? (slug as keyof typeof featurePageFlags);
+		const configured = featurePageFlags[key];
 		return configured !== false;
 	};
 
@@ -130,8 +136,7 @@ export async function getStaticPaths() {
 			let permalink: string | null = null;
 			if (hasCustomPermalink(entry)) {
 				permalink =
-					entry.data.permalink?.replace(/^\/+/, "").replace(/\/+$/, "") ??
-					null;
+					entry.data.permalink?.replace(/^\/+/, "").replace(/\/+$/, "") ?? null;
 			} else if (permalinkConfig.enable) {
 				permalink = generatePermalinkSlug(entry);
 			}
@@ -168,6 +173,7 @@ setCurrentLocaleContext(localePath, true);
 {kind === "skills" && <SkillsPage localePath={localePath} />}
 {kind === "timeline" && <TimelinePage localePath={localePath} />}
 {kind === "devices" && <DevicesPage localePath={localePath} />}
+{kind === "aiTools" && <AIToolsPage localePath={localePath} />}
 {kind === "rss" && <RssPage localePath={localePath} />}
 {kind === "atom" && <AtomPage localePath={localePath} />}
 {kind === "post" && entry && <PostPage entry={entry} localePath={localePath} />}

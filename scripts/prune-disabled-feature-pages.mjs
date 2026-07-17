@@ -4,7 +4,18 @@ import path from "node:path";
 const ROOT = process.cwd();
 const SITE_CONFIG_PATH = path.join(ROOT, "src/config/siteConfig.ts");
 const LOCALE_CONFIG_PATH = path.join(ROOT, "src/i18n/locale.ts");
-const FEATURE_PAGE_KEYS = ["anime", "eroge", "diary", "friends", "projects", "skills", "timeline", "albums", "devices"];
+const FEATURE_PAGE_SLUGS = {
+	anime: "anime",
+	eroge: "eroge",
+	diary: "diary",
+	friends: "friends",
+	projects: "projects",
+	skills: "skills",
+	timeline: "timeline",
+	albums: "albums",
+	devices: "devices",
+	aiTools: "ai-tools",
+};
 
 function parseArgs() {
 	const outIndex = process.argv.indexOf("--out");
@@ -23,12 +34,14 @@ function readDisabledFeaturePages() {
 		throw new Error("Unable to parse featurePages from siteConfig.ts");
 	}
 
-	return FEATURE_PAGE_KEYS.filter((key) => {
-		const match = featureBlock[1].match(
-			new RegExp(`\\b${key}\\s*:\\s*(true|false)`),
-		);
-		return match?.[1] === "false";
-	});
+	return Object.entries(FEATURE_PAGE_SLUGS)
+		.filter(([key]) => {
+			const match = featureBlock[1].match(
+				new RegExp(`\\b${key}\\s*:\\s*(true|false)`),
+			);
+			return match?.[1] === "false";
+		})
+		.map(([, slug]) => slug);
 }
 
 function readLocalePaths() {

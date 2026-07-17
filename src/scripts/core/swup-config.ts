@@ -3,6 +3,8 @@
  * 提供页面过渡动画的配置常量和类型定义
  */
 
+import type { FancyboxOptions } from "@fancyapps/ui";
+
 // Banner 高度常量
 export const BANNER_HEIGHT = 35;
 export const BANNER_HEIGHT_EXTEND = 30;
@@ -21,7 +23,6 @@ export const SWUP_SELECTORS = {
 		"#navbar-wrapper",
 		"#sidebar",
 		".music-player",
-		"#pio-container",
 	],
 
 	// Banner 相关
@@ -166,50 +167,34 @@ export interface CarouselConfig {
 }
 
 // Fancybox 配置类型
-export interface FancyboxConfig {
-	Thumbs: {
-		autoStart: boolean;
-		showOnStart: string;
-	};
-	Toolbar: {
-		display: {
-			left: string[];
-			middle: string[];
-			right: string[];
-		};
-	};
-	animated: boolean;
-	dragToClose: boolean;
-	keyboard: Record<string, string>;
-	fitToView: boolean;
-	preload: number;
-	infinite: boolean;
-	Panzoom: {
-		maxScale: number;
-		minScale: number;
-	};
-	caption: boolean;
-}
+export type FancyboxConfig = Partial<FancyboxOptions>;
 
 // 默认 Fancybox 配置
 export const getDefaultFancyboxConfig = (): FancyboxConfig => ({
-	Thumbs: { autoStart: true, showOnStart: "yes" },
-	Toolbar: {
-		display: {
-			left: ["infobar"],
-			middle: [
-				"zoomIn",
-				"zoomOut",
-				"toggle1to1",
-				"rotateCCW",
-				"rotateCW",
-				"flipX",
-				"flipY",
-			],
-			right: ["slideshow", "thumbs", "close"],
+	Carousel: {
+		infinite: true,
+		Lazyload: { preload: 3 },
+		Thumbs: { showOnStart: true },
+		Toolbar: {
+			display: {
+				left: ["counter"],
+				middle: [
+					"zoomIn",
+					"zoomOut",
+					"toggle1to1",
+					"rotateCCW",
+					"rotateCW",
+					"flipX",
+					"flipY",
+					"reset",
+				],
+				right: ["autoplay", "fullscreen", "thumbs", "close"],
+			},
+		},
+		Zoomable: {
+			Panzoom: { maxScale: 3, minScale: 1 },
 		},
 	},
-	animated: true,
 	dragToClose: true,
 	keyboard: {
 		Escape: "close",
@@ -222,21 +207,21 @@ export const getDefaultFancyboxConfig = (): FancyboxConfig => ({
 		ArrowRight: "next",
 		ArrowLeft: "prev",
 	},
-	fitToView: true,
-	preload: 3,
-	infinite: true,
-	Panzoom: { maxScale: 3, minScale: 1 },
-	caption: false,
 });
 
 // Fancybox 选择器
 export const FANCYBOX_SELECTORS = {
 	// 相册/文章图片
-	albumImages: ".custom-md img, #post-cover img, .moment-images img",
+	albumImages:
+		".custom-md img:not(.image-grid img), #post-cover img, .moment-images img",
+
+	// Markdown 图片网格：每个网格通过 data-fancybox 形成独立轮播组
+	imageGrids: ".image-grid [data-fancybox]",
 
 	// 相册链接
 	albumLinks: ".moment-images a[data-fancybox]",
 
 	// 单独的 fancybox 图片
-	singleFancybox: "[data-fancybox]:not(.moment-images a)",
+	singleFancybox:
+		"[data-fancybox]:not(.moment-images a):not(.image-grid [data-fancybox])",
 } as const;

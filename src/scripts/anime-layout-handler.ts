@@ -142,12 +142,20 @@ export function initAnimeLayoutHandler(options: LayoutHandlerOptions) {
 		});
 	}
 
+	function isLayoutSwitchEnabled() {
+		return document.documentElement.getAttribute("data-post-list-layout-enabled") !== "false";
+	}
+
+	function getPostListLayout() {
+		return isLayoutSwitchEnabled() ? (localStorage.getItem("postListLayout") || "list") : "list";
+	}
+
 	function initAnimeLayout() {
 		const animeListContainer = document.getElementById(containerId);
 		if (!animeListContainer) {
 			return false;
 		}
-		const currentLayout = localStorage.getItem("postListLayout") || "list";
+		const currentLayout = getPostListLayout();
 		updateAnimeListLayout(currentLayout, false);
 		requestAnimationFrame(() => {
 			animeListContainer.classList.remove("opacity-0");
@@ -170,8 +178,7 @@ export function initAnimeLayoutHandler(options: LayoutHandlerOptions) {
 			setTimeout(() => {
 				const animeListContainer = document.getElementById(containerId);
 				if (animeListContainer) {
-					const currentLayout =
-						localStorage.getItem("postListLayout") || "list";
+					const currentLayout = getPostListLayout();
 					updateAnimeListLayout(currentLayout, false);
 					animeListContainer.classList.remove("opacity-0");
 				}

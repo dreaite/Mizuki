@@ -7,21 +7,24 @@ import { sidebarLayoutConfig, siteConfig } from "../../config";
 
 type LayoutMode = "list" | "grid";
 
-export let currentLayout: LayoutMode = "list";
+let { currentLayout = $bindable("list") } = $props<{
+	currentLayout?: LayoutMode;
+}>();
 
-let mounted = false;
-let isSmallScreen = false;
-let isSwitching = false;
-let userPreference: LayoutMode = "list";
+let mounted = $state(false);
+let isSmallScreen = $state(false);
+let isSwitching = $state(false);
+let userPreference = $state<LayoutMode>("list");
 let mediaQueryList: MediaQueryList | null = null;
 
 const BREAKPOINT = sidebarLayoutConfig.responsive?.breakpoints?.desktop ?? 1280;
 
-$: currentLayout = isSmallScreen ? "list" : userPreference;
+const computedLayout = $derived(isSmallScreen ? "list" : userPreference);
 
-$: if (mounted) {
-	dispatchLayoutChange(currentLayout);
-}
+$effect(() => {
+	currentLayout = computedLayout;
+	dispatchLayoutChange(computedLayout);
+});
 
 function dispatchLayoutChange(layout: LayoutMode) {
 	if (typeof window !== "undefined") {
@@ -70,7 +73,8 @@ function handleMediaQueryChange(e: MediaQueryListEvent | MediaQueryList) {
 onMount(() => {
 	mounted = true;
 
-	const sessionLayout = getSavedSessionLayout();
+	const layoutEnabled = siteConfig.postListLayout?.enable ?? true;
+	const sessionLayout = layoutEnabled ? getSavedSessionLayout() : null;
 	const defaultLayout = siteConfig.postListLayout.defaultMode as LayoutMode;
 
 	if (sessionLayout === "list" || sessionLayout === "grid") {
@@ -87,11 +91,7 @@ onMount(() => {
 	mediaQueryList = window.matchMedia(`(min-width: ${BREAKPOINT}px)`);
 	handleMediaQueryChange(mediaQueryList);
 
-	if (mediaQueryList.addEventListener) {
-		mediaQueryList.addEventListener("change", handleMediaQueryChange);
-	} else {
-		mediaQueryList.addListener(handleMediaQueryChange);
-	}
+	mediaQueryList.addEventListener("change", handleMediaQueryChange);
 
 	const handleCustomEvent = (event: CustomEvent<{ layout: LayoutMode }>) => {
 		if (event.detail?.layout) {
@@ -129,13 +129,7 @@ onMount(() => {
 	}
 
 	return () => {
-		if (mediaQueryList) {
-			if (mediaQueryList.removeEventListener) {
-				mediaQueryList.removeEventListener("change", handleMediaQueryChange);
-			} else {
-				mediaQueryList.removeListener(handleMediaQueryChange);
-			}
-		}
+		mediaQueryList?.removeEventListener("change", handleMediaQueryChange);
 		window.removeEventListener(
 			"layoutChange",
 			handleCustomEvent as EventListener,

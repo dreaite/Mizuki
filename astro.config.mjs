@@ -1,13 +1,14 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { unified } from "@astrojs/markdown-remark";
+import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
-import mdx from '@astrojs/mdx';
 import svelte, { vitePreprocess } from "@astrojs/svelte";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
 import swup from "@swup/astro";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "astro/config";
+import { defineConfig, fontProviders } from "astro/config";
 import expressiveCode from "astro-expressive-code";
 import icon from "astro-icon";
 import { oddmisc } from "oddmisc";
@@ -19,12 +20,13 @@ import rehypeSlug from "rehype-slug";
 import remarkDirective from "remark-directive";
 import remarkMath from "remark-math";
 import remarkSectionize from "remark-sectionize";
-
 import { siteConfig } from "./src/config/index.ts";
+import { buildIconInclude } from "./src/plugins/astro-icon-include.mjs";
 import { pluginCustomCopyButton } from "./src/plugins/expressive-code/custom-copy-button.js";
 import { pluginLanguageBadge } from "./src/plugins/expressive-code/language-badge.ts";
 import { AdmonitionComponent } from "./src/plugins/rehype-component-admonition.mjs";
 import { GithubCardComponent } from "./src/plugins/rehype-component-github-card.mjs";
+import { ImageGridComponent } from "./src/plugins/rehype-component-image-grid.mjs";
 import { SiteCardComponent } from "./src/plugins/rehype-component-site-card.mjs";
 import { XCardComponent } from "./src/plugins/rehype-component-x-card.mjs";
 import { rehypeImageWidth } from "./src/plugins/rehype-image-width.mjs";
@@ -32,6 +34,7 @@ import { rehypeMermaid } from "./src/plugins/rehype-mermaid.mjs";
 import { rehypeWrapTable } from "./src/plugins/rehype-wrap-table.mjs";
 import { remarkContent } from "./src/plugins/remark-content.mjs";
 import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
+import { remarkEscapeNumericColons } from "./src/plugins/remark-escape-numeric-colons.mjs";
 import { remarkFixGithubAdmonitions } from "./src/plugins/remark-fix-github-admonitions.js";
 import { remarkMermaid } from "./src/plugins/remark-mermaid.js";
 import { remarkSiteMetadata } from "./src/plugins/remark-site-metadata.mjs";
@@ -45,10 +48,13 @@ const sitemapLocaleAliases = {
 const defaultSitemapLocale = siteConfig.i18n?.defaultLocale || "cn";
 const buildOutputDir = path.join(process.cwd(), "dist");
 const sitemapLocalePaths = new Set(Object.keys(sitemapLocaleAliases));
+const featurePageSlugs = {
+	aiTools: "ai-tools",
+};
 const disabledFeaturePages = new Set(
 	Object.entries(siteConfig.featurePages)
 		.filter(([, enabled]) => enabled === false)
-		.map(([slug]) => slug),
+		.map(([key]) => featurePageSlugs[key] || key),
 );
 
 function stripSitemapLocale(pathname) {
@@ -69,7 +75,9 @@ function hasBuiltIndexPage(pathname) {
 	const normalizedPathname = decodeURIComponent(pathname)
 		.replace(/^\/+/, "")
 		.replace(/\/+$/, "");
-	return existsSync(path.join(buildOutputDir, normalizedPathname, "index.html"));
+	return existsSync(
+		path.join(buildOutputDir, normalizedPathname, "index.html"),
+	);
 }
 
 function shouldIncludeInSitemap(page) {
@@ -100,9 +108,56 @@ function shouldIncludeInSitemap(page) {
 
 // https://astro.build/config
 export default defineConfig({
+	fonts: [
+		{
+			name: "JetBrains Mono",
+			cssVariable: "--font-jetbrains-mono",
+			provider: fontProviders.fontsource(),
+			styles: ["normal", "italic"],
+		},
+		{
+			name: "ZenMaruGothic-Medium",
+			cssVariable: "--font-body",
+			provider: fontProviders.local(),
+			options: {
+				variants: [
+					{
+						src: ["./src/assets/fonts/ZenMaruGothic-Medium.ttf"],
+						weight: "500",
+						style: "normal",
+					},
+				],
+			},
+			// These variables are composed into --font-sans below. Keep their
+			// fallback lists empty; otherwise a system fallback after this Latin
+			// font prevents the following CJK font from ever being considered.
+			fallbacks: [],
+			optimizedFallbacks: false,
+		},
+		{
+			name: "Loli",
+			cssVariable: "--font-cjk",
+			provider: fontProviders.local(),
+			options: {
+				variants: [
+					{
+						src: ["./src/assets/fonts/loli.ttf"],
+						weight: "400",
+						style: "normal",
+					},
+				],
+			},
+			// The final system fallback belongs to --font-sans, not this partial
+			// CJK font stack.
+			fallbacks: [],
+			optimizedFallbacks: false,
+		},
+	],
+
 	site: siteConfig.siteURL,
 	base: "/",
 	trailingSlash: "always",
+	compressHTML: true,
 
 	output: "static",
 
@@ -136,14 +191,12 @@ export default defineConfig({
 			animateHistoryBrowsing: false,
 			skipPopStateHandling: (event) => {
 				// 跳过锚点链接的处理，让浏览器原生处理
-				return (
-					event.state &&
-					event.state.url &&
-					event.state.url.includes("#")
-				);
+				return event.state?.url?.includes("#");
 			},
 		}),
-		icon(),
+		icon({
+			include: buildIconInclude(),
+		}),
 		expressiveCode({
 			themes: ["github-light", "github-dark"],
 			plugins: [
@@ -168,7 +221,7 @@ export default defineConfig({
 				borderColor: "none",
 				codeFontSize: "0.875rem",
 				codeFontFamily:
-					"'JetBrains Mono Variable', SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', 'Microsoft JhengHei', '微軟正黑體', 'Microsoft YaHei', '微软雅黑', 'Noto Sans HK', 'Noto Sans TC', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans KR', ui-monospace, monospace",
+					"var(--font-jetbrains-mono), SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
 				codeLineHeight: "1.5rem",
 				frames: {
 					editorBackground: "var(--codeblock-bg)",
@@ -204,72 +257,75 @@ export default defineConfig({
 		mdx(),
 	],
 	markdown: {
-		remarkPlugins: [
-			remarkMath,
-			remarkContent,
-			remarkFixGithubAdmonitions,
-			remarkDirective,
-			[
-				remarkSiteMetadata,
-				{
-					siteUrl: siteConfig.siteURL,
-					defaultLocale: siteConfig.i18n?.defaultLocale,
-					locales: siteConfig.i18n?.locales,
-				},
-			],
-			remarkXMetadata,
-			remarkSectionize,
-			parseDirectiveNode,
-			remarkMermaid,
-		],
-		rehypePlugins: [
-			rehypeKatex,
-			[
-				rehypeExternalLinks,
-				{
-					target: "_blank",
-					rel: ["nofollow", "noopener", "noreferrer"],
-				},
-			],
-			rehypeSlug,
-			rehypeWrapTable,
-			rehypeMermaid,
-			[
-				rehypeComponents,
-				{
-					components: {
-						github: GithubCardComponent,
-						site: SiteCardComponent,
-						x: XCardComponent,
-						note: (x, y) => AdmonitionComponent(x, y, "note"),
-						tip: (x, y) => AdmonitionComponent(x, y, "tip"),
-						important: (x, y) =>
-							AdmonitionComponent(x, y, "important"),
-						caution: (x, y) => AdmonitionComponent(x, y, "caution"),
-						warning: (x, y) => AdmonitionComponent(x, y, "warning"),
+		processor: unified({
+			remarkPlugins: [
+				remarkMath,
+				remarkContent,
+				remarkFixGithubAdmonitions,
+				remarkDirective,
+				remarkEscapeNumericColons,
+				[
+					remarkSiteMetadata,
+					{
+						siteUrl: siteConfig.siteURL,
+						defaultLocale: siteConfig.i18n?.defaultLocale,
+						locales: siteConfig.i18n?.locales,
 					},
-				},
+				],
+				remarkXMetadata,
+				remarkSectionize,
+				parseDirectiveNode,
+				remarkMermaid,
 			],
-			[
-				rehypeAutolinkHeadings,
-				{
-					behavior: "append",
-					properties: {
-						className: ["anchor"],
+			rehypePlugins: [
+				rehypeKatex,
+				[
+					rehypeExternalLinks,
+					{
+						target: "_blank",
+						rel: ["nofollow", "noopener", "noreferrer"],
 					},
-					content: {
-						type: "element",
-						tagName: "span",
-						properties: {
-							className: ["anchor-icon"],
-							"data-pagefind-ignore": true,
+				],
+				rehypeSlug,
+				rehypeWrapTable,
+				rehypeMermaid,
+				[
+					rehypeComponents,
+					{
+						components: {
+							github: GithubCardComponent,
+							grid: ImageGridComponent,
+							site: SiteCardComponent,
+							x: XCardComponent,
+							note: (x, y) => AdmonitionComponent(x, y, "note"),
+							tip: (x, y) => AdmonitionComponent(x, y, "tip"),
+							important: (x, y) => AdmonitionComponent(x, y, "important"),
+							caution: (x, y) => AdmonitionComponent(x, y, "caution"),
+							warning: (x, y) => AdmonitionComponent(x, y, "warning"),
 						},
-						children: [{ type: "text", value: "#" }],
 					},
-				},
+				],
+				[
+					rehypeAutolinkHeadings,
+					{
+						behavior: "append",
+						properties: {
+							className: ["anchor"],
+						},
+						content: {
+							type: "element",
+							tagName: "span",
+							properties: {
+								className: ["anchor-icon"],
+								"data-pagefind-ignore": true,
+							},
+							children: [{ type: "text", value: "#" }],
+						},
+					},
+				],
+				rehypeImageWidth,
 			],
-			rehypeImageWidth,
-		],
+		}),
 	},
 	vite: {
 		plugins: [tailwindcss()],
@@ -314,12 +370,8 @@ export default defineConfig({
 			rollupOptions: {
 				onwarn(warning, warn) {
 					if (
-						warning.message.includes(
-							"is dynamically imported by",
-						) &&
-						warning.message.includes(
-							"but also statically imported by",
-						)
+						warning.message.includes("is dynamically imported by") &&
+						warning.message.includes("but also statically imported by")
 					) {
 						return;
 					}
@@ -330,9 +382,7 @@ export default defineConfig({
 		// 生产环境移除 console.log 和 debugger
 		esbuildOptions: {
 			drop:
-				process.env.NODE_ENV === "production"
-					? ["console", "debugger"]
-					: [],
+				process.env.NODE_ENV === "production" ? ["console", "debugger"] : [],
 		},
 	},
 });

@@ -215,7 +215,33 @@ export const en: Translation = {
 	// Wallpaper mode
 	[Key.wallpaperBanner]: "Banner Mode",
 	[Key.wallpaperFullscreen]: "Fullscreen Mode",
+	[Key.wallpaperOverlay]: "Overlay Mode",
 	[Key.wallpaperNone]: "Hide Wallpaper",
+
+	// Settings panel
+	[Key.settingsPanel]: "Settings",
+	[Key.wallpaperSettings]: "Wallpaper",
+	[Key.overlaySettings]: "Wallpaper Effects",
+	[Key.overlayOpacity]: "Wallpaper Opacity",
+	[Key.overlayBlur]: "Background Blur",
+	[Key.overlayCardOpacity]: "Card Opacity",
+	[Key.fullscreenOpacity]: "Wallpaper Opacity",
+	[Key.fullscreenBlur]: "Background Blur",
+	[Key.wavesAnimation]: "Waves Animation",
+	[Key.bannerTitle]: "Banner Title",
+	[Key.bannerCarousel]: "Banner Carousel",
+	[Key.sakuraEffect]: "Sakura Effect",
+	[Key.effectsSettings]: "Effects",
+	[Key.postListLayout]: "Post Layout",
+	[Key.postListLayoutList]: "List",
+	[Key.postListLayoutGrid]: "Grid",
+	[Key.resetAll]: "Reset All",
+	[Key.settingsThemeColor]: "Theme Color",
+	[Key.settingsWallpaper]: "Wallpaper",
+	[Key.settingsWallpaperEffects]: "Wallpaper Effects",
+	[Key.settingsBanner]: "Banner Options",
+	[Key.settingsEffects]: "Effects",
+	[Key.settingsLayout]: "Layout",
 
 	// Skills Page
 	[Key.skills]: "Skills",
@@ -244,6 +270,26 @@ export const en: Translation = {
 	[Key.skillsByLevel]: "By Level",
 	[Key.skillsByCategory]: "By Category",
 	[Key.noData]: "No data",
+
+	// AI Tools (About page)
+	[Key.aiTools]: "AI Tools I Use",
+	[Key.aiToolsSubtitle]:
+		"AI assistants and services that are part of my daily workflow",
+	[Key.aiToolsCategoryChat]: "Chat Assistants",
+	[Key.aiToolsCategoryCoding]: "Coding",
+	[Key.aiToolsCategoryImage]: "Image",
+	[Key.aiToolsCategoryAudio]: "Audio",
+	[Key.aiToolsCategoryVideo]: "Video",
+	[Key.aiToolsCategoryWriting]: "Writing / Notes",
+	[Key.aiToolsCategorySearch]: "Search / Research",
+	[Key.aiToolsCategoryOther]: "Other",
+	[Key.aiToolsFrequencyDaily]: "Daily",
+	[Key.aiToolsFrequencyWeekly]: "Weekly",
+	[Key.aiToolsFrequencyOccasional]: "Occasional",
+	[Key.aiToolsFrequencyExperimental]: "Experimental",
+	[Key.aiToolsUsage]: "Usage",
+	[Key.aiToolsVisit]: "Visit",
+	[Key.aiToolsNoResults]: "No matching AI tools",
 
 	// Timeline Page
 	[Key.timeline]: "Timeline",

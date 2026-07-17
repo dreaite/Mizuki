@@ -8,8 +8,8 @@
 
 import { profileConfig, siteConfig } from "@/config";
 import {
-	SUPPORTED_LOCALES,
 	getDefaultLocaleInfo,
+	SUPPORTED_LOCALES,
 	stripLocalePrefix,
 } from "@/i18n/locale";
 import type { LocaleSwitchPathMap } from "@/utils/locale-switch-utils";
@@ -135,8 +135,7 @@ const defaultAlternateHref = alternateLinks.find(
 	))
 }
 
-<!-- 字体通过构建脚本压缩到 /assets/font/ 目录，此处不再预加载以避免 404 -->
-<!-- 字体在构建时通过 scripts/compress-fonts.js 处理并复制到 dist/ -->
+<!-- 字体由 Astro Font API 在构建时处理并注入 -->
 
 <!-- 预连接 Iconify API 以减少图标加载延迟 -->
 <link rel="preconnect" href="https://api.iconify.design" crossorigin />
@@ -150,6 +149,7 @@ const defaultAlternateHref = alternateLinks.find(
 		DARK_MODE,
 		BANNER_HEIGHT_EXTEND: 30,
 		configHue,
+		themeColorFixed: siteConfig.themeColor.fixed ?? false,
 		pageScaling: siteConfig.pageScaling,
 	}}
 >
@@ -176,7 +176,7 @@ const defaultAlternateHref = alternateLinks.find(
 	}
 
 	// Load the hue from local storage
-	const hue = localStorage.getItem("hue") || configHue;
+	const hue = themeColorFixed ? configHue : (localStorage.getItem("hue") || configHue);
 	document.documentElement.style.setProperty("--hue", hue);
 
 	// calculate the --banner-height-extend, which needs to be a multiple of 4 to avoid blurry text

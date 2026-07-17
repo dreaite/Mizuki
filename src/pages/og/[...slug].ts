@@ -30,8 +30,9 @@ export const getStaticPaths: GetStaticPaths = async () => {
 	const publishedPosts = allPosts.filter((post) => !post.data.draft);
 
 	return publishedPosts.map((post) => {
-		// 将 id 转换为 slug（移除扩展名）以匹配路由参数
-		const slug = removeFileExtension(post.id);
+		// 将 .png 作为 catch-all 参数的一部分，避免 Astro 对
+		// [...slug].png.ts 生成的严格后缀路由无法匹配尾斜杠路径。
+		const slug = `${removeFileExtension(post.id)}.png`;
 		return {
 			params: { slug },
 			props: { post },

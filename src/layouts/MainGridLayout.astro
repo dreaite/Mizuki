@@ -1,4 +1,5 @@
 ---
+import type { CollectionEntry } from "astro:content";
 import FloatingControls from "@components/control/FloatingControls.astro";
 import { SidebarTOC } from "@components/features/toc";
 import Banner from "@components/layout/Banner.astro";
@@ -8,13 +9,16 @@ import IconifyLoader from "@components/misc/IconifyLoader.astro";
 import Footer from "@components/organisms/footer/Footer.astro";
 import Navbar from "@components/organisms/navigation/Navbar.astro";
 import SideBar from "@components/widgets/sidebar/SideBar.astro";
-import type { CollectionEntry } from "astro:content";
 import type { MarkdownHeading } from "astro";
 import { Icon } from "astro-icon/components";
 
 import { fullscreenWallpaperConfig, siteConfig } from "../config";
-import { BANNER_HEIGHT } from "../constants/constants";
+import {
+	BANNER_HEIGHT,
+	BANNER_HEIGHT_FULLSCREEN,
+} from "../constants/constants";
 import { isLocalizedHomePath } from "../i18n/locale";
+import { formatDateToYYYYMMDD } from "../utils/date-utils";
 import {
 	calculateGridLayout,
 	getBannerImages,
@@ -37,6 +41,9 @@ interface Props {
 	postEntry?: CollectionEntry<"posts">;
 	headings?: MarkdownHeading[];
 	coverImage?: string;
+	publishedDate?: Date;
+	category?: string;
+	wordCount?: number;
 }
 
 // 获取 banner 图片
@@ -52,6 +59,9 @@ const {
 	postEntry,
 	coverImage,
 	headings = [],
+	publishedDate,
+	category,
+	wordCount,
 } = Astro.props;
 const hasBannerCredit = siteConfig.banner.credit.enable;
 const hasBannerLink = !!siteConfig.banner.credit.url;
@@ -65,6 +75,7 @@ const mobileNonHomeBannerClass = !isHomePage ? "mobile-hide-banner" : "";
 const finalMainPanelTop = getMainPanelTop(
 	siteConfig.wallpaperMode.defaultMode,
 	BANNER_HEIGHT,
+	BANNER_HEIGHT_FULLSCREEN,
 );
 
 // 计算网格布局
@@ -115,7 +126,12 @@ const { localeSwitchPaths, alternateLocalePaths } = await getLocaleRouteMaps(
 		defaultWallpaperMode={siteConfig.wallpaperMode.defaultMode}
 		defaultPostListLayout={siteConfig.postListLayout?.defaultMode || "list"}
 		BANNER_HEIGHT={BANNER_HEIGHT}
+		BANNER_HEIGHT_FULLSCREEN={BANNER_HEIGHT_FULLSCREEN}
 		pageScaling={siteConfig.pageScaling}
+		wavesEnabled={siteConfig.banner?.waves?.enable ?? true}
+		bannerTitleEnabled={siteConfig.banner?.homeText?.enable ?? true}
+		wallpaperEnabled={fullscreenWallpaperConfig.enable ?? true}
+		postListLayoutEnabled={siteConfig.postListLayout?.enable ?? true}
 	/>
 
 	<!-- 全屏壁纸 - 始终渲染，通过 JS 控制显示隐藏 -->
@@ -231,8 +247,18 @@ const { localeSwitchPaths, alternateLocalePaths } = await getLocaleRouteMaps(
 						id="content-wrapper"
 						class="onload-animation transition-leaving"
 					>
-						<!-- the overflow-hidden here prevent long text break the layout-->
-						<!-- make id different from windows.swup global property -->
+						<div
+							id="page-overlay-data"
+							data-title={title || ""}
+							data-date={publishedDate ? formatDateToYYYYMMDD(publishedDate) : ""}
+							data-category={category || ""}
+							data-words={wordCount ? String(wordCount) : ""}
+							data-is-post={postSlug ? "true" : "false"}
+							data-is-home={isHomePage ? "true" : "false"}
+							data-wallpaper-mode={siteConfig.wallpaperMode.defaultMode}
+							class="hidden"
+						>
+						</div>
 						<slot />
 						<div
 							class="footer col-span-full onload-animation hidden lg:block"

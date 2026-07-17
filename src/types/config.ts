@@ -4,6 +4,7 @@ import type {
 	WALLPAPER_BANNER,
 	WALLPAPER_FULLSCREEN,
 	WALLPAPER_NONE,
+	WALLPAPER_OVERLAY,
 } from "../constants/constants";
 
 export interface SiteConfig {
@@ -47,11 +48,13 @@ export interface SiteConfig {
 		timeline: boolean; // 时间线页面开关
 		albums: boolean; // 相册页面开关
 		devices: boolean; // 设备页面开关
+		aiTools: boolean; // AI 工具页面开关
 	};
 
 	// 文章列表布局配置
 	postListLayout: {
 		defaultMode: "list" | "grid"; // 默认布局模式：list=列表模式，grid=网格模式
+		enable: boolean; // 是否启用布局切换功能
 		allowSwitch: boolean; // 是否允许用户切换布局
 		categoryBar?: {
 			enable: boolean; // 是否在文章列表页显示分类导航条
@@ -72,21 +75,7 @@ export interface SiteConfig {
 		targetWidth?: number; // 目标宽度，低于此宽度时开始缩放
 	};
 
-	// 添加字体配置
-	font: {
-		asciiFont: {
-			fontFamily: string;
-			fontWeight: string | number;
-			localFonts: string[];
-			enableCompress: boolean;
-		};
-		cjkFont: {
-			fontFamily: string;
-			fontWeight: string | number;
-			localFonts: string[];
-			enableCompress: boolean;
-		};
-	};
+	// 字体现在通过 astro.config.mjs 的 fonts 选项配置（Astro Font API）
 
 	// 添加bangumi配置
 	bangumi?: {
@@ -123,8 +112,8 @@ export interface SiteConfig {
 
 	// 壁纸模式配置
 	wallpaperMode: {
-		defaultMode: "banner" | "fullscreen" | "none"; // 默认壁纸模式：banner=顶部横幅，fullscreen=全屏壁纸，none=无壁纸
-		showModeSwitchOnMobile?: "off" | "mobile" | "desktop" | "both"; // 整体布局方案切换按钮显示设置：off=隐藏，mobile=仅移动端，desktop=仅桌面端，both=全部显示
+		defaultMode: "banner" | "fullscreen" | "overlay" | "none";
+		showModeSwitchOnMobile?: "off" | "mobile" | "desktop" | "both";
 	};
 
 	banner: {
@@ -134,31 +123,34 @@ export interface SiteConfig {
 			| {
 					desktop?: string | string[];
 					mobile?: string | string[];
-			  }; // 支持单个图片、图片数组或分别设置桌面端和移动端图片
+			  };
 		position?: "top" | "center" | "bottom";
 		carousel?: {
-			enable: boolean; // 是否启用轮播
-			interval: number; // 轮播间隔时间（秒）
+			enable: boolean;
+			interval: number;
+			switchable?: boolean;
 		};
 		waves?: {
-			enable: boolean; // 是否启用水波纹效果
-			performanceMode?: boolean; // 性能模式：减少动画复杂度
-			mobileDisable?: boolean; // 移动端禁用
+			enable: boolean;
+			performanceMode?: boolean;
+			mobileDisable?: boolean;
+			switchable?: boolean;
 		};
 		imageApi?: {
-			enable: boolean; // 是否启用图片API
-			url: string; // API地址，返回每行一个图片链接的文本
+			enable: boolean;
+			url: string;
 		};
 		homeText?: {
-			enable: boolean; // 是否在首页显示自定义文字
-			title?: string; // 主标题
-			subtitle?: string | string[]; // 副标题，支持单个字符串或字符串数组
+			enable: boolean;
+			title?: string;
+			subtitle?: string | string[];
 			typewriter?: {
-				enable: boolean; // 是否启用打字机效果
-				speed: number; // 打字速度（毫秒）
-				deleteSpeed: number; // 删除速度（毫秒）
-				pauseTime: number; // 完整显示后的暂停时间（毫秒）
+				enable: boolean;
+				speed: number;
+				deleteSpeed: number;
+				pauseTime: number;
 			};
+			switchable?: boolean;
 		};
 		credit: {
 			enable: boolean;
@@ -221,6 +213,7 @@ export enum LinkPreset {
 	Projects = 7,
 	Skills = 8,
 	Timeline = 9,
+	AITools = 10,
 }
 
 export interface NavBarLink {
@@ -317,6 +310,7 @@ export type LIGHT_DARK_MODE = typeof LIGHT_MODE | typeof DARK_MODE;
 export type WALLPAPER_MODE =
 	| typeof WALLPAPER_BANNER
 	| typeof WALLPAPER_FULLSCREEN
+	| typeof WALLPAPER_OVERLAY
 	| typeof WALLPAPER_NONE;
 
 export interface BlogPostData {
@@ -423,9 +417,10 @@ export interface SidebarLayoutConfig {
 }
 
 export interface SakuraConfig {
-	enable: boolean; // 是否启用樱花特效
-	sakuraNum: number; // 樱花数量，默认21
-	limitTimes: number; // 樱花越界限制次数，-1为无限循环
+	enable: boolean;
+	switchable?: boolean;
+	sakuraNum: number;
+	limitTimes: number;
 	size: {
 		min: number; // 樱花最小尺寸倍数
 		max: number; // 樱花最大尺寸倍数
@@ -450,21 +445,43 @@ export interface SakuraConfig {
 }
 
 export interface FullscreenWallpaperConfig {
+	enable?: boolean;
 	src:
 		| string
 		| string[]
 		| {
 				desktop?: string | string[];
 				mobile?: string | string[];
-		  }; // 支持单个图片、图片数组或分别设置桌面端和移动端图片
-	position?: "top" | "center" | "bottom"; // 壁纸位置，等同于 object-position
+		  };
+	position?: "top" | "center" | "bottom";
 	carousel?: {
-		enable: boolean; // 是否启用轮播
-		interval: number; // 轮播间隔时间（秒）
+		enable: boolean;
+		interval: number;
 	};
-	zIndex?: number; // 层级，确保壁纸在合适的层级显示
-	opacity?: number; // 壁纸透明度，0-1之间
-	blur?: number; // 背景模糊程度，单位px
+	zIndex?: number;
+	opacity?: number;
+	blur?: number;
+	switchable?: boolean;
+	overlay?: {
+		opacity?: number;
+		blur?: number;
+		cardOpacity?: number;
+		switchable?:
+			| boolean
+			| {
+					opacity?: boolean;
+					blur?: boolean;
+					cardOpacity?: boolean;
+			  };
+	};
+	fullscreen?: {
+		switchable?:
+			| boolean
+			| {
+					opacity?: boolean;
+					blur?: boolean;
+			  };
+	};
 }
 
 /**
