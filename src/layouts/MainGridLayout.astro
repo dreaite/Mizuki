@@ -17,7 +17,7 @@ import {
 	BANNER_HEIGHT,
 	BANNER_HEIGHT_FULLSCREEN,
 } from "../constants/constants";
-import { isLocalizedHomePath } from "../i18n/locale";
+import { isLocalizedHomePath, stripLocalePrefix } from "../i18n/locale";
 import { formatDateToYYYYMMDD } from "../utils/date-utils";
 import {
 	calculateGridLayout,
@@ -108,6 +108,8 @@ const { localeSwitchPaths, alternateLocalePaths } = await getLocaleRouteMaps(
 	Astro.url.pathname + Astro.url.search,
 	postEntry ?? postSlug,
 );
+const currentLocalePath = stripLocalePrefix(Astro.url.pathname).localePath;
+const canonicalPath = alternateLocalePaths[currentLocalePath];
 ---
 
 <Layout
@@ -118,6 +120,7 @@ const { localeSwitchPaths, alternateLocalePaths } = await getLocaleRouteMaps(
 	setOGTypeArticle={setOGTypeArticle}
 	postSlug={postSlug}
 	coverImage={coverImage}
+	canonicalPath={canonicalPath}
 	alternateLocalePaths={alternateLocalePaths}
 >
 	<GridScripts

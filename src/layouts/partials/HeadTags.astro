@@ -34,6 +34,7 @@ interface Props {
 
 	// 配置
 	configHue: number;
+	canonicalPath?: string;
 	alternateLocalePaths?: LocaleSwitchPathMap;
 }
 
@@ -43,6 +44,7 @@ const {
 	ogImageUrl,
 	setOGTypeArticle = false,
 	configHue,
+	canonicalPath,
 	alternateLocalePaths = {},
 } = Astro.props;
 
@@ -55,10 +57,16 @@ const favicons: Favicon[] =
 
 const defaultLocalePath = getDefaultLocaleInfo().path;
 const route = stripLocalePrefix(Astro.url.pathname);
-const canonicalUrl = new URL(Astro.url);
+const canonicalUrl = canonicalPath
+	? new URL(canonicalPath, Astro.site ?? Astro.url)
+	: new URL(Astro.url);
 canonicalUrl.search = "";
 canonicalUrl.hash = "";
-if (route.hasLocalePrefix && route.localePath === defaultLocalePath) {
+if (
+	!canonicalPath &&
+	route.hasLocalePrefix &&
+	route.localePath === defaultLocalePath
+) {
 	canonicalUrl.pathname = route.pathWithoutLocale;
 }
 const canonicalHref = canonicalUrl.toString();

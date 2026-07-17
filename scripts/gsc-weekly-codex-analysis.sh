@@ -25,7 +25,7 @@ cd "$ROOT_DIR"
 
 if [ "${DRY_RUN:-}" = "1" ]; then
 	echo "Would run: $PNPM_BIN gsc:weekly"
-	echo "Would run: $CODEX_BIN exec -C $ROOT_DIR -s read-only -a never -o <analysis-file> - < $PROMPT_FILE"
+	echo "Would run: $CODEX_BIN exec -C $ROOT_DIR -s read-only -o <analysis-file> - < $PROMPT_FILE"
 	exit 0
 fi
 
@@ -49,7 +49,6 @@ echo "[$(date -Is)] Starting Codex analysis for $WEEK_LABEL"
 "$CODEX_BIN" exec \
 	-C "$ROOT_DIR" \
 	-s read-only \
-	-a never \
 	-o "$ANALYSIS_FILE" \
 	- < "$PROMPT_FILE"
 cp "$ANALYSIS_FILE" "$LATEST_ANALYSIS_FILE"

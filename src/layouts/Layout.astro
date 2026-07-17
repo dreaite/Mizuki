@@ -33,6 +33,7 @@ interface Props {
 	setOGTypeArticle?: boolean;
 	postSlug?: string;
 	coverImage?: string;
+	canonicalPath?: string;
 	alternateLocalePaths?: LocaleSwitchPathMap;
 }
 
@@ -44,6 +45,7 @@ let {
 	setOGTypeArticle,
 	postSlug,
 	coverImage,
+	canonicalPath,
 	alternateLocalePaths = {},
 } = Astro.props;
 
@@ -189,6 +191,7 @@ const bannerOffset =
 			ogImageUrl={ogImageUrl}
 			setOGTypeArticle={setOGTypeArticle}
 			configHue={configHue}
+			canonicalPath={canonicalPath}
 			alternateLocalePaths={alternateLocalePaths}
 		/>
 

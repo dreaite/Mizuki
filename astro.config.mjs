@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { unified } from "@astrojs/markdown-remark";
 import mdx from "@astrojs/mdx";
@@ -80,6 +80,23 @@ function hasBuiltIndexPage(pathname) {
 	);
 }
 
+function getBuiltCanonicalPathname(pathname) {
+	const normalizedPathname = decodeURIComponent(pathname)
+		.replace(/^\/+/, "")
+		.replace(/\/+$/, "");
+	const indexPath = path.join(buildOutputDir, normalizedPathname, "index.html");
+	if (!existsSync(indexPath)) return null;
+
+	const html = readFileSync(indexPath, "utf8");
+	const canonicalTag = html.match(
+		/<link\b[^>]*\brel=["']canonical["'][^>]*>/i,
+	)?.[0];
+	const canonicalHref = canonicalTag?.match(/\bhref=["']([^"']+)["']/i)?.[1];
+	if (!canonicalHref) return null;
+
+	return new URL(canonicalHref, siteConfig.siteURL).pathname;
+}
+
 function shouldIncludeInSitemap(page) {
 	const pathname = new URL(page).pathname;
 	const routePathname = stripSitemapLocale(pathname);
@@ -93,6 +110,11 @@ function shouldIncludeInSitemap(page) {
 		pathname !== `/${defaultSitemapLocale}/` &&
 		pathname.startsWith(`/${defaultSitemapLocale}/`)
 	) {
+		return false;
+	}
+
+	const canonicalPathname = getBuiltCanonicalPathname(pathname);
+	if (canonicalPathname && canonicalPathname !== pathname) {
 		return false;
 	}
 
