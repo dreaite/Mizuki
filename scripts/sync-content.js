@@ -23,6 +23,16 @@ function resolveFromRoot(value) {
 	return path.isAbsolute(value) ? value : path.resolve(rootDir, value);
 }
 
+function pathEntryExists(value) {
+	try {
+		fs.lstatSync(value);
+		return true;
+	} catch (error) {
+		if (error?.code === "ENOENT") return false;
+		throw error;
+	}
+}
+
 function redactRepoUrl(value) {
 	if (!value) return "";
 
@@ -150,11 +160,45 @@ if (postCount === 0) {
 // 创建符号链接或复制内容
 console.log("\nSetting up content links...");
 
+function restoreLegacyDirectoryMapping(dest) {
+	const destPath = path.join(rootDir, dest);
+	if (
+		!pathEntryExists(destPath) ||
+		!fs.lstatSync(destPath).isSymbolicLink()
+	) {
+		return;
+	}
+
+	const backupPath = path.join(BACKUP_DIR, dest);
+	console.log(`Restoring local directory before merged sync: ${dest}`);
+	fs.unlinkSync(destPath);
+	fs.mkdirSync(path.dirname(destPath), { recursive: true });
+
+	if (pathEntryExists(backupPath)) {
+		fs.renameSync(backupPath, destPath);
+	} else {
+		fs.mkdirSync(destPath, { recursive: true });
+	}
+}
+
+// Older builds replaced public/images as a whole. Restore its local backup,
+// then map each remote top-level entry separately so code-owned directories
+// such as public/images/artworks and public/images/demos remain available.
+restoreLegacyDirectoryMapping("public/images");
+
+const remoteImagesDir = path.join(CONTENT_DIR, "images");
+const imageMappings = fs.existsSync(remoteImagesDir)
+	? fs.readdirSync(remoteImagesDir, { withFileTypes: true }).map((entry) => ({
+			src: path.posix.join("images", entry.name),
+			dest: path.posix.join("public/images", entry.name),
+		}))
+	: [];
+
 const contentMappings = [
 	{ src: "posts", dest: "src/content/posts" },
 	{ src: "spec", dest: "src/content/spec" },
 	{ src: "data", dest: "src/data" },
-	{ src: "images", dest: "public/images" },
+	...imageMappings,
 ];
 
 for (const mapping of contentMappings) {
@@ -167,13 +211,16 @@ for (const mapping of contentMappings) {
 		continue;
 	}
 
-	if (fs.existsSync(legacyBackupPath)) {
+	if (pathEntryExists(legacyBackupPath)) {
 		console.log(`Removing legacy in-place backup: ${mapping.dest}.backup`);
 		fs.rmSync(legacyBackupPath, { recursive: true, force: true });
 	}
 
 	// 如果目标已存在且不是符号链接,备份它
-	if (fs.existsSync(destPath) && !fs.lstatSync(destPath).isSymbolicLink()) {
+	if (
+		pathEntryExists(destPath) &&
+		!fs.lstatSync(destPath).isSymbolicLink()
+	) {
 		const backupPath = path.join(BACKUP_DIR, mapping.dest);
 		console.log(
 			`Backing up existing content: ${mapping.dest} -> ${path.relative(
@@ -181,7 +228,7 @@ for (const mapping of contentMappings) {
 				backupPath,
 			)}`,
 		);
-		if (fs.existsSync(backupPath)) {
+		if (pathEntryExists(backupPath)) {
 			fs.rmSync(backupPath, { recursive: true, force: true });
 		}
 		fs.mkdirSync(path.dirname(backupPath), { recursive: true });
@@ -191,7 +238,7 @@ for (const mapping of contentMappings) {
 	fs.mkdirSync(path.dirname(destPath), { recursive: true });
 
 	// 删除现有的符号链接
-	if (fs.existsSync(destPath)) {
+	if (pathEntryExists(destPath)) {
 		fs.unlinkSync(destPath);
 	}
 

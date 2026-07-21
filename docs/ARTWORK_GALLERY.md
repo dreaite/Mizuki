@@ -65,4 +65,6 @@ export const galleryConfig = {
 
 ## 启用内容分离时
 
-生产环境若启用了 `ENABLE_CONTENT_SYNC=true`，`public/images/` 会由内容仓库的 `images/` 整体映射。此时请把画作与 `gallery.json` 放到内容仓库的 `images/artworks/`，不要只修改主仓库里的 `public/images/artworks/`。
+生产环境启用 `ENABLE_CONTENT_SYNC=true` 后，会按内容仓库 `images/` 下的一级文件或目录分别映射到 `public/images/`，不会再替换整个 `public/images/`。因此，只要内容仓库没有同名的 `images/artworks/`，主仓库中的 `public/images/artworks/` 与 `gallery.json` 会原样进入部署产物。
+
+同一个一级目录只建议由一个仓库维护：如果内容仓库也提供 `images/artworks/`，它会覆盖主仓库的 `public/images/artworks/`；此时画作与 `gallery.json` 应全部放在内容仓库中。
