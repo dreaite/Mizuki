@@ -19,7 +19,7 @@ export type LocaleString = Partial<
 >;
 
 export function getLocaleString(value: LocaleString, lang: string): string {
-	return value[lang as keyof LocaleString] ?? value["en"] ?? "";
+	return value[lang as keyof LocaleString] ?? value.en ?? "";
 }
 
 export interface AITool {
@@ -35,7 +35,12 @@ export interface AITool {
 	color?: string;
 }
 
-// Replace the examples below with your own AI tools
+/**
+ * AI tools page data.
+ *
+ * This lives in src/config rather than src/data because content synchronization
+ * replaces src/data with the external content repository during deployment.
+ */
 export const aiToolsData: AITool[] = [
 	{
 		id: "example-chat",

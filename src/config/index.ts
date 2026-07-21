@@ -10,6 +10,7 @@
  * siteConfig                    │ siteConfig.ts              │ 站点核心配置（标题、语言、主题色、横幅、字体、特色页面开关等）
  * SITE_LANG                     │ siteConfig.ts              │ 站点语言常量（从 siteConfig 中导出）
  * fullscreenWallpaperConfig     │ backgroundWallpaper.ts     │ 全屏壁纸模式配置（图片源、轮播、透明度、模糊）
+ * aiToolsData                   │ aiToolsConfig.ts            │ AI 工具页面数据
  * navBarConfig                  │ navBarConfig.ts            │ 导航栏菜单配置（链接、多级下拉菜单）
  * profileConfig                 │ profileConfig.ts           │ 个人资料（头像、昵称、简介、社交链接）
  * galleryConfig                 │ galleryConfig.ts           │ 画作页平台链接（Pixiv、X、Bilibili）
@@ -51,6 +52,16 @@
  * 以上三种方式都会自动解析到此 index.ts 文件。
  */
 
+export type {
+	AITool,
+	AIToolCategory,
+	AIToolFrequency,
+	LocaleString,
+} from "./aiToolsConfig";
+export {
+	aiToolsData,
+	getLocaleString,
+} from "./aiToolsConfig";
 export { announcementConfig } from "./announcementConfig";
 
 // ─── 外观与壁纸 ─────────────────────────────────────────────

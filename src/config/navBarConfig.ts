@@ -193,6 +193,11 @@ export const navBarConfig: NavBarConfig = {
 					url: "/devices/",
 					icon: "material-symbols:devices",
 					external: false, // 内部链接，当前页导航
+        },
+        {
+					name: "Projects",
+					url: "/projects/",
+					icon: "material-symbols:work",
 				},
 			],
 		},
@@ -200,39 +205,44 @@ export const navBarConfig: NavBarConfig = {
 		// 自定义一级下拉菜单示例：关于相关
 		{
 			name: "About",
-			url: "/content/",
-			icon: "material-symbols:info",
-			children: [
-				{
-					name: "About",
-					url: "/about/",
-					icon: "material-symbols:person",
-				},
-				{
-					name: "Friends",
-					url: "/friends/",
-					icon: "material-symbols:group",
-				},
-			],
+			url: "/about/",
+			icon: "material-symbols:person",
+			// children: [
+			// 	{
+			// 		name: "About",
+			// 		url: "/about/",
+			// 		icon: "material-symbols:person",
+			// 	},
+			// 	{
+			// 		name: "Friends",
+			// 		url: "/friends/",
+			// 		icon: "material-symbols:group",
+			// 	},
+			// ],
 		},
+		{
+			name: "Friends",
+			url: "/friends/",
+			icon: "material-symbols:group",
+    },
 
 		// 自定义一级下拉菜单示例：其他页面
-		{
-			name: "Others",
-			url: "#", // "#" 作为占位 URL，点击不会跳转
-			icon: "material-symbols:more-horiz",
-			children: [
-				{
-					name: "Projects",
-					url: "/projects/",
-					icon: "material-symbols:work",
-				},
-				// {
-				// 	name: "Timeline",
-				// 	url: "/timeline/",
-				// 	icon: "material-symbols:timeline",
-				// },
-			],
-		},
+		// {
+		// 	name: "Others",
+		// 	url: "#", // "#" 作为占位 URL，点击不会跳转
+		// 	icon: "material-symbols:more-horiz",
+		// 	children: [
+		// 		{
+		// 			name: "Projects",
+		// 			url: "/projects/",
+		// 			icon: "material-symbols:work",
+		// 		},
+		// 		// {
+		// 		// 	name: "Timeline",
+		// 		// 	url: "/timeline/",
+		// 		// 	icon: "material-symbols:timeline",
+		// 		// },
+		// 	],
+		// },
 	],
 };
