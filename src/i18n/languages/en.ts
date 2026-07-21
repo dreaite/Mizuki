@@ -132,6 +132,17 @@ export const en: Translation = {
 		"No albums have been created yet. Go add some beautiful memories!",
 	[Key.albumsBackToList]: "Back to Albums",
 
+	// Personal Art Gallery
+	[Key.artGallery]: "Artworks",
+	[Key.artGallerySubtitle]:
+		"A newest-first collection of my drawings and illustrations",
+	[Key.artGalleryEmpty]: "The canvas is still empty",
+	[Key.artGalleryEmptyDesc]:
+		"Upload the first artwork and it will appear here in newest-first order.",
+	[Key.artGallerySocialLinks]: "Find my work on other platforms",
+	[Key.artGalleryLinkPending]: "Not configured",
+	[Key.artGalleryViewArtwork]: "View full artwork",
+
 	// Devices Page
 	[Key.devices]: "My Devices",
 	[Key.devicesSubtitle]: "Here are the devices I use in my daily life",

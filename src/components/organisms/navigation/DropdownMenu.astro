@@ -4,7 +4,7 @@ import { Icon } from "astro-icon/components";
 import { LinkPresets } from "../../../constants/link-presets";
 import I18nKey from "../../../i18n/i18nKey";
 import { i18n } from "../../../i18n/translation";
-import { localizedUrl } from "../../../utils/url-utils";
+import { canonicalLocalizedUrl, localizedUrl } from "../../../utils/url-utils";
 import type { DropdownMenuProps } from "./types";
 
 const { link, class: className } = Astro.props as DropdownMenuProps;
@@ -19,6 +19,7 @@ const navTitleMap: Record<string, I18nKey> = {
 	Anime: I18nKey.anime,
 	Diary: I18nKey.diary,
 	Gallery: I18nKey.albums,
+	Artworks: I18nKey.artGallery,
 	Devices: I18nKey.devices,
 	Projects: I18nKey.projects,
 	Skills: I18nKey.skills,
@@ -37,6 +38,8 @@ const children =
 
 const hasChildren = children.length > 0;
 const localizedLinkName = getLocalizedName(link.name);
+const getInternalHref = (path: string): string =>
+	path === "/gallery/" ? canonicalLocalizedUrl(path) : localizedUrl(path);
 ---
 
 <div class:list={["dropdown-container group", className]} data-dropdown>
@@ -71,7 +74,7 @@ const localizedLinkName = getLocalizedName(link.name);
 								href={
 									child.external
 										? child.url
-										: localizedUrl(child.url)
+										: getInternalHref(child.url)
 								}
 								target={child.external ? "_blank" : null}
 								rel={
@@ -105,7 +108,7 @@ const localizedLinkName = getLocalizedName(link.name);
 		) : (
 			<a
 				aria-label={localizedLinkName}
-				href={link.external ? link.url : localizedUrl(link.url)}
+				href={link.external ? link.url : getInternalHref(link.url)}
 				target={link.external ? "_blank" : null}
 				rel={link.external ? "noopener noreferrer" : null}
 				class="btn-plain scale-animation rounded-lg h-11 font-bold w-11 lg:w-auto lg:px-5 active:scale-95 flex items-center justify-center lg:justify-start whitespace-nowrap"

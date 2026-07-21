@@ -127,6 +127,15 @@ enum I18nKey {
 	albumsFilterAll = "albumsFilterAll",
 	albumsNoResults = "albumsNoResults",
 
+	// 个人画作展示页
+	artGallery = "artGallery",
+	artGallerySubtitle = "artGallerySubtitle",
+	artGalleryEmpty = "artGalleryEmpty",
+	artGalleryEmptyDesc = "artGalleryEmptyDesc",
+	artGallerySocialLinks = "artGallerySocialLinks",
+	artGalleryLinkPending = "artGalleryLinkPending",
+	artGalleryViewArtwork = "artGalleryViewArtwork",
+
 	// 设备页面
 	devices = "devices",
 	devicesSubtitle = "devicesSubtitle",

@@ -136,6 +136,15 @@ export const zh_TW: Translation = {
 	[Key.albumsFilterAll]: "全部",
 	[Key.albumsNoResults]: "沒有匹配的相冊",
 
+	// 個人畫作展示頁
+	[Key.artGallery]: "畫作",
+	[Key.artGallerySubtitle]: "按時間收藏我的繪畫與插畫作品",
+	[Key.artGalleryEmpty]: "畫布還是空的",
+	[Key.artGalleryEmptyDesc]: "上傳第一幅作品後，它會從這裡開始按新到舊排列。",
+	[Key.artGallerySocialLinks]: "在其他平台查看我的作品",
+	[Key.artGalleryLinkPending]: "待配置",
+	[Key.artGalleryViewArtwork]: "查看大圖",
+
 	// 專案展示頁面
 	[Key.projects]: "專案展示",
 	[Key.projectsSubtitle]: "我的開發專案作品集",

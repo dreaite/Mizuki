@@ -4,14 +4,14 @@ import { Icon } from "astro-icon/components";
 import { LinkPresets } from "../../../constants/link-presets";
 import I18nKey from "../../../i18n/i18nKey";
 import {
-	SUPPORTED_LOCALES,
 	getCurrentLocalePath,
 	getLocaleSwitchPath,
+	SUPPORTED_LOCALES,
 } from "../../../i18n/locale";
 import { i18n } from "../../../i18n/translation";
-import type { LocaleSwitchPathMap } from "../../../utils/locale-switch-utils";
 import type { LinkPreset, NavBarLink } from "../../../types/config";
-import { localizedUrl } from "../../../utils/url-utils";
+import type { LocaleSwitchPathMap } from "../../../utils/locale-switch-utils";
+import { canonicalLocalizedUrl, localizedUrl } from "../../../utils/url-utils";
 import type { NavMenuPanelProps, ProcessedNavBarLink } from "./types";
 
 const navTitleMap: Record<string, string> = {
@@ -24,6 +24,7 @@ const navTitleMap: Record<string, string> = {
 	Anime: I18nKey.anime,
 	Diary: I18nKey.diary,
 	Gallery: I18nKey.albums,
+	Artworks: I18nKey.artGallery,
 	Devices: I18nKey.devices,
 	Projects: I18nKey.projects,
 	Skills: I18nKey.skills,
@@ -38,6 +39,9 @@ const getLocalizedName = (name: string): string => {
 	}
 	return name;
 };
+
+const getInternalHref = (path: string): string =>
+	path === "/gallery/" ? canonicalLocalizedUrl(path) : localizedUrl(path);
 
 const { links, localeSwitchPaths = {} } = Astro.props as NavMenuPanelProps;
 
@@ -102,7 +106,7 @@ const languageOptions = SUPPORTED_LOCALES.map((locale) => ({
 									href={
 										child.external
 											? child.url
-											: localizedUrl(child.url)
+											: getInternalHref(child.url)
 									}
 									class="group flex justify-between items-center py-2 pl-6 pr-1 rounded-lg gap-4
                                    hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition"
@@ -130,7 +134,7 @@ const languageOptions = SUPPORTED_LOCALES.map((locale) => ({
 				) : (
 					<a
 						href={
-							link.external ? link.url : localizedUrl(link.url)
+							link.external ? link.url : getInternalHref(link.url)
 						}
 						class="group flex justify-between items-center py-2 pl-3 pr-1 rounded-lg gap-4
                     hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition

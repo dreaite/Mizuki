@@ -1,6 +1,5 @@
 import type { CollectionEntry } from "astro:content";
 import I18nKey from "@i18n/i18nKey";
-import { i18n } from "@i18n/translation";
 import {
 	getCurrentLocaleContext,
 	getCurrentLocalePath,
@@ -8,6 +7,7 @@ import {
 	type SupportedLocalePath,
 	withLocalePrefix,
 } from "@i18n/locale";
+import { i18n } from "@i18n/translation";
 
 import { permalinkConfig } from "../config";
 import { generatePermalinkSlug } from "./permalink-utils";
@@ -99,7 +99,9 @@ export function getCategoryUrl(category: string | null): string {
 	) {
 		return localizedUrl("/archive/?uncategorized=true");
 	}
-	return localizedUrl(`/archive/?category=${encodeURIComponent(category.trim())}`);
+	return localizedUrl(
+		`/archive/?category=${encodeURIComponent(category.trim())}`,
+	);
 }
 
 export function getDir(path: string): string {
@@ -124,5 +126,20 @@ export function localizedUrl(path: string) {
 	const context = getCurrentLocaleContext();
 	return url(
 		withLocalePrefix(path, getCurrentLocalePath(), context.hasLocalePrefix),
+	);
+}
+
+/**
+ * 生成当前语言的规范 URL：默认语言不带前缀，其余语言保留前缀。
+ * 仅用于没有默认语言镜像路由的页面，避免从 /cn/* 页面链接到重复地址。
+ */
+export function canonicalLocalizedUrl(path: string) {
+	const localePath = getCurrentLocalePath();
+	return url(
+		withLocalePrefix(
+			path,
+			localePath,
+			localePath !== getDefaultLocaleInfo().path,
+		),
 	);
 }

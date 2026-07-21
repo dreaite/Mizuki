@@ -12,6 +12,7 @@
  * fullscreenWallpaperConfig     │ backgroundWallpaper.ts     │ 全屏壁纸模式配置（图片源、轮播、透明度、模糊）
  * navBarConfig                  │ navBarConfig.ts            │ 导航栏菜单配置（链接、多级下拉菜单）
  * profileConfig                 │ profileConfig.ts           │ 个人资料（头像、昵称、简介、社交链接）
+ * galleryConfig                 │ galleryConfig.ts           │ 画作页平台链接（Pixiv、X、Bilibili）
  * licenseConfig                 │ licenseConfig.ts           │ 文章许可协议（CC 协议名称和链接）
  * permalinkConfig               │ permalinkConfig.ts         │ 固定链接配置（URL 格式模板）
  * expressiveCodeConfig          │ expressiveCodeConfig.ts    │ 代码块样式（主题、主题切换行为）
@@ -31,7 +32,7 @@
  * 类型定义
  * ══════════════════════════════════════════════════════════════
  *
- * 所有配置的 TypeScript 接口定义在 src/types/config.ts 中。
+ * 通用配置接口定义在 src/types/config.ts，画作页专用接口定义在 src/types/gallery.ts。
  * 修改配置结构时，请同步更新对应的接口定义。
  *
  * ══════════════════════════════════════════════════════════════
@@ -60,6 +61,7 @@ export { sakuraConfig } from "./effectsConfig";
 // ─── 代码块 ─────────────────────────────────────────────────
 export { expressiveCodeConfig } from "./expressiveCodeConfig";
 export { footerConfig } from "./footerConfig";
+export { galleryConfig } from "./galleryConfig";
 // ─── 内容与版权 ─────────────────────────────────────────────
 export { licenseConfig } from "./licenseConfig";
 // ─── 多媒体 ─────────────────────────────────────────────────

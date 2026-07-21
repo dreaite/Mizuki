@@ -133,6 +133,16 @@ export const ja: Translation = {
 		"まだアルバムが作成されていません。美しい思い出を追加しましょう!",
 	[Key.albumsBackToList]: "アルバムに戻る",
 
+	// 作品ギャラリー
+	[Key.artGallery]: "作品",
+	[Key.artGallerySubtitle]: "新しい順に並べたイラストと絵のコレクション",
+	[Key.artGalleryEmpty]: "キャンバスはまだ空です",
+	[Key.artGalleryEmptyDesc]:
+		"最初の作品を追加すると、新しい順にここへ表示されます。",
+	[Key.artGallerySocialLinks]: "ほかのプラットフォームで作品を見る",
+	[Key.artGalleryLinkPending]: "未設定",
+	[Key.artGalleryViewArtwork]: "作品を拡大表示",
+
 	// デバイスページ
 	[Key.devices]: "デバイス",
 	[Key.devicesSubtitle]: "日常的に使用しているデバイスを紹介",

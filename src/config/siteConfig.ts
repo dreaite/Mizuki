@@ -33,6 +33,7 @@ export const siteConfig: SiteConfig = {
 		skills: false, // 技能页面开关
 		timeline: true, // 时间线页面开关
 		albums: false, // 相册页面开关
+		gallery: true, // 个人画作展示页开关
 		devices: false, // 设备页面开关
 		aiTools: false, // AI 工具页面开关；默认关闭以保持当前站点页面与菜单不变
 	},

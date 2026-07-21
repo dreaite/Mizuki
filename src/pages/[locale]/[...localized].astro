@@ -2,6 +2,7 @@
 import type { CollectionEntry } from "astro:content";
 import { permalinkConfig, siteConfig } from "../../config";
 import {
+	getDefaultLocaleInfo,
 	SUPPORTED_LOCALES,
 	type SupportedLocalePath,
 	setCurrentLocaleContext,
@@ -27,6 +28,7 @@ import DevicesPage from "../devices.astro";
 import DiaryPage from "../diary.astro";
 import ErogePage from "../eroge.astro";
 import FriendsPage from "../friends.astro";
+import GalleryPage from "../gallery.astro";
 import PostPage from "../posts/[...slug].astro";
 import ProjectsPage from "../projects.astro";
 import RssPage from "../rss.astro";
@@ -42,6 +44,7 @@ type PageKind =
 	| "diary"
 	| "albums"
 	| "album"
+	| "gallery"
 	| "projects"
 	| "skills"
 	| "timeline"
@@ -68,6 +71,7 @@ export async function getStaticPaths() {
 		eroge: "eroge",
 		diary: "diary",
 		albums: "albums",
+		gallery: "gallery",
 		projects: "projects",
 		skills: "skills",
 		timeline: "timeline",
@@ -80,6 +84,7 @@ export async function getStaticPaths() {
 		params: { locale: string; localized: string };
 		props: LocalizedProps;
 	}[] = [];
+	const defaultLocalePath = getDefaultLocaleInfo().path;
 	const albums = siteConfig.featurePages.albums ? await scanAlbums() : [];
 	const featurePageFlags = siteConfig.featurePages;
 	const featurePageSlugKeys: Record<string, keyof typeof featurePageFlags> = {
@@ -97,6 +102,10 @@ export async function getStaticPaths() {
 
 		for (const [slug, kind] of Object.entries(staticPages)) {
 			if (!isEnabled(slug)) {
+				continue;
+			}
+			// 默认语言使用无前缀的 /gallery/，避免生成重复的 /cn/gallery/。
+			if (slug === "gallery" && locale.path === defaultLocalePath) {
 				continue;
 			}
 			paths.push({
@@ -164,6 +173,7 @@ setCurrentLocaleContext(localePath, true);
 {kind === "eroge" && <ErogePage localePath={localePath} />}
 {kind === "diary" && <DiaryPage localePath={localePath} />}
 {kind === "albums" && <AlbumsPage localePath={localePath} />}
+{kind === "gallery" && <GalleryPage localePath={localePath} />}
 {
 	kind === "album" && album && (
 		<AlbumPage album={album} localePath={localePath} />

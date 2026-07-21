@@ -184,9 +184,9 @@ export const navBarConfig: NavBarConfig = {
 					icon: "material-symbols:book",
 				},
 				{
-					name: "Gallery",
-					url: "/albums/",
-					icon: "material-symbols:photo-library",
+					name: "Artworks",
+					url: "/gallery/",
+					icon: "material-symbols:palette",
 				},
 				{
 					name: "Devices",

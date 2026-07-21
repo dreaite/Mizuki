@@ -1,0 +1,44 @@
+---
+import { Icon } from "astro-icon/components";
+
+import type { GallerySocialLink } from "../../../types/gallery";
+
+interface Props {
+	links: GallerySocialLink[];
+	label: string;
+	pendingLabel: string;
+}
+
+const { links, label, pendingLabel } = Astro.props as Props;
+const buttonClass =
+	"btn-regular flex h-11 w-11 items-center justify-center rounded-xl text-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--primary)";
+---
+
+<nav class="flex flex-wrap items-center gap-2" aria-label={label}>
+	{
+		links.map((link) =>
+			link.url ? (
+				<a
+					href={link.url}
+					target="_blank"
+					rel="noopener noreferrer"
+					class={buttonClass}
+					aria-label={link.label}
+					title={link.label}
+				>
+					<Icon name={link.icon} />
+				</a>
+			) : (
+				<span
+					class={`${buttonClass} cursor-not-allowed opacity-40`}
+					role="link"
+					aria-label={`${link.label}: ${pendingLabel}`}
+					aria-disabled="true"
+					title={`${link.label} · ${pendingLabel}`}
+				>
+					<Icon name={link.icon} />
+				</span>
+			),
+		)
+	}
+</nav>

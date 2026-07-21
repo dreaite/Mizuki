@@ -1,0 +1,104 @@
+---
+import { ArtworkCard, GallerySocialLinks } from "@components/features/gallery";
+import { PageHeader } from "@components/features/page-header";
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { Icon } from "astro-icon/components";
+
+import { galleryConfig, siteConfig } from "../config";
+import I18nKey from "../i18n/i18nKey";
+import { getCurrentLocaleLang, setCurrentLocaleContext } from "../i18n/locale";
+import { i18n } from "../i18n/translation";
+import { scanArtworks } from "../utils/gallery-scanner";
+
+setCurrentLocaleContext(Astro.props.localePath);
+
+if (!siteConfig.featurePages.gallery) {
+	return Astro.redirect("/404/");
+}
+
+const artworks = scanArtworks();
+const title = i18n(I18nKey.artGallery);
+const subtitle = i18n(I18nKey.artGallerySubtitle);
+const dateFormatter = new Intl.DateTimeFormat(
+	getCurrentLocaleLang().replace("_", "-"),
+	{
+		year: "numeric",
+		month: "short",
+		day: "numeric",
+		timeZone: "UTC",
+	},
+);
+---
+
+<MainGridLayout title={title} description={subtitle}>
+	<script>
+		import("../scripts/right-sidebar-layout.js");
+		import { loadIconify } from "../utils/icon-loader";
+
+		loadIconify().catch((error) => {
+			console.error("Failed to load Iconify:", error);
+		});
+	</script>
+
+	<section class="w-full overflow-hidden rounded-(--radius-large)">
+		<div class="card-base relative z-10 w-full px-6 py-6 sm:px-9">
+			<div class="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+				<PageHeader title={title} subtitle={subtitle} class="!mb-0" />
+				<GallerySocialLinks
+					links={galleryConfig.socialLinks}
+					label={i18n(I18nKey.artGallerySocialLinks)}
+					pendingLabel={i18n(I18nKey.artGalleryLinkPending)}
+				/>
+			</div>
+
+			{
+				artworks.length > 0 ? (
+					<div class="gallery-masonry artwork-wall">
+						{artworks.map((artwork, index) => (
+							<ArtworkCard
+								artwork={artwork}
+								formattedDate={dateFormatter.format(
+									new Date(artwork.publishedAt),
+								)}
+								viewLabel={i18n(I18nKey.artGalleryViewArtwork)}
+								priority={index === 0}
+							/>
+						))}
+					</div>
+				) : (
+					<div class="flex flex-col items-center justify-center px-4 py-16 text-center">
+						<Icon
+							name="material-symbols:palette-outline"
+							class="mb-4 text-6xl text-black/15 dark:text-white/15"
+						/>
+						<h2 class="mb-2 text-lg font-medium text-black/90 dark:text-white/90">
+							{i18n(I18nKey.artGalleryEmpty)}
+						</h2>
+						<p class="max-w-md text-black/55 dark:text-white/55">
+							{i18n(I18nKey.artGalleryEmptyDesc)}
+						</p>
+					</div>
+				)
+			}
+		</div>
+	</section>
+</MainGridLayout>
+
+<style is:global>
+	.artwork-wall {
+		column-width: 260px;
+		column-gap: 0.875rem;
+	}
+
+	.artwork-wall .artwork-card {
+		break-inside: avoid;
+		margin-bottom: 0.875rem;
+	}
+
+	@media (width < 480px) {
+		.artwork-wall {
+			column-width: auto;
+			column-count: 1;
+		}
+	}
+</style>

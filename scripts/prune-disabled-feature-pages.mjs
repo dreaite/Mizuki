@@ -13,6 +13,7 @@ const FEATURE_PAGE_SLUGS = {
 	skills: "skills",
 	timeline: "timeline",
 	albums: "albums",
+	gallery: "gallery",
 	devices: "devices",
 	aiTools: "ai-tools",
 };

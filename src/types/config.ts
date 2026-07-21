@@ -47,6 +47,7 @@ export interface SiteConfig {
 		skills: boolean; // 技能页面开关
 		timeline: boolean; // 时间线页面开关
 		albums: boolean; // 相册页面开关
+		gallery: boolean; // 个人画作展示页开关
 		devices: boolean; // 设备页面开关
 		aiTools: boolean; // AI 工具页面开关
 	};

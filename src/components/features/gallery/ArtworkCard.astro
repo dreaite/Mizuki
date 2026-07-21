@@ -1,0 +1,60 @@
+---
+import type { Artwork } from "../../../types/gallery";
+
+interface Props {
+	artwork: Artwork;
+	formattedDate: string;
+	viewLabel: string;
+	priority?: boolean;
+}
+
+const {
+	artwork,
+	formattedDate,
+	viewLabel,
+	priority = false,
+} = Astro.props as Props;
+const caption = [artwork.title, formattedDate, artwork.description]
+	.filter(Boolean)
+	.join(" · ");
+---
+
+<figure
+	class="artwork-card mb-3 w-full break-inside-avoid overflow-hidden rounded-xl bg-(--btn-regular-bg)"
+>
+	<button
+		type="button"
+		data-src={artwork.src}
+		data-fancybox="artworks"
+		data-caption={caption}
+		data-type="image"
+		class="artwork-trigger block w-full cursor-zoom-in appearance-none overflow-hidden rounded-t-xl rounded-b-none border-0 bg-transparent p-0 text-left focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-(--primary)"
+		aria-label={`${viewLabel}: ${artwork.title}`}
+		aria-haspopup="dialog"
+	>
+		<img
+			src={artwork.thumbnail ?? artwork.src}
+			alt={artwork.alt}
+			width={artwork.width}
+			height={artwork.height}
+			loading={priority ? "eager" : "lazy"}
+			fetchpriority={priority ? "high" : "auto"}
+			decoding="async"
+			class="block h-auto w-full rounded-t-xl rounded-b-none"
+		/>
+	</button>
+
+	<figcaption
+		class="artwork-caption relative z-10 -mt-px translate-y-0 transform-none rounded-t-none rounded-b-xl bg-(--btn-regular-bg) px-4 py-3 text-black/75 transition-none dark:text-white/75"
+	>
+		<h2 class="break-words text-sm font-bold">
+			{artwork.title}
+		</h2>
+		<time
+			datetime={artwork.publishedAt}
+			class="mt-1 block text-xs text-black/50 dark:text-white/50"
+		>
+			{formattedDate}
+		</time>
+	</figcaption>
+</figure>

@@ -131,6 +131,15 @@ export const zh_CN: Translation = {
 	[Key.albumsFilterAll]: "全部",
 	[Key.albumsNoResults]: "没有匹配的相册",
 
+	// 个人画作展示页
+	[Key.artGallery]: "画作",
+	[Key.artGallerySubtitle]: "按时间收藏我的绘画与插画作品",
+	[Key.artGalleryEmpty]: "画布还是空的",
+	[Key.artGalleryEmptyDesc]: "上传第一幅作品后，它会从这里开始按新到旧排列。",
+	[Key.artGallerySocialLinks]: "在其他平台查看我的作品",
+	[Key.artGalleryLinkPending]: "待配置",
+	[Key.artGalleryViewArtwork]: "查看大图",
+
 	// 设备页面
 	[Key.devices]: "我的设备",
 	[Key.devicesSubtitle]: "这里展示了我日常使用的各类设备",
