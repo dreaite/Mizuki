@@ -268,14 +268,62 @@ function withTrailingSlash(pathname) {
 	return pathname.endsWith("/") ? pathname : `${pathname}/`;
 }
 
-function addRedirect(rules, source, destination) {
+function normalizeRoutePathname(pathname) {
+	const pathOnly = pathname.split(/[?#]/, 1)[0];
+	const normalized = pathOnly.replace(/^\/+/, "").replace(/\/+$/, "");
+	return normalized ? `/${normalized}/` : "/";
+}
+
+function getBuiltCanonicalPathname(outputDir, pathname) {
+	const normalizedPathname = normalizeRoutePathname(pathname);
+	const relativePath = normalizedPathname
+		.replace(/^\/+/, "")
+		.replace(/\/+$/, "");
+	const indexPath = path.join(outputDir, relativePath, "index.html");
+	if (!existsSync(indexPath)) {
+		return null;
+	}
+
+	const html = readFileSync(indexPath, "utf8");
+	const canonicalTag = html.match(
+		/<link\b[^>]*\brel=["']canonical["'][^>]*>/i,
+	)?.[0];
+	const canonicalHref = canonicalTag?.match(/\bhref=["']([^"']+)["']/i)?.[1];
+	if (!canonicalHref) {
+		return null;
+	}
+
+	try {
+		return normalizeRoutePathname(
+			new URL(canonicalHref, "https://canonical.invalid").pathname,
+		);
+	} catch {
+		return null;
+	}
+}
+
+function addRedirect(rules, source, destination, outputDir) {
 	if (!source || !destination || source === destination) {
 		return;
 	}
+
+	// Compatibility rules must agree with the canonical target of any real
+	// built route. Numeric legacy post IDs overlap pagination paths such as
+	// /2/ and /cn/2/; allowing those rules to win would redirect sitemap pages
+	// to unrelated posts.
+	const builtCanonicalPathname = getBuiltCanonicalPathname(outputDir, source);
+	const normalizedDestination = normalizeRoutePathname(destination);
+	if (
+		builtCanonicalPathname &&
+		builtCanonicalPathname !== normalizedDestination
+	) {
+		return;
+	}
+
 	rules.set(source, `${source} ${destination} 301`);
 }
 
-function generateRules() {
+function generateRules(outputDir) {
 	const { defaultLocale, defaultLang } = readSiteConfig();
 	const permalinkConfig = readPermalinkConfig();
 	const posts = walkMarkdownFiles(POSTS_DIR)
@@ -289,6 +337,8 @@ function generateRules() {
 		sortedPosts.map((post, index) => [post.filePath, index + 1]),
 	);
 	const exactRules = new Map();
+	const addExactRedirect = (source, destination) =>
+		addRedirect(exactRules, source, destination, outputDir);
 
 	for (const post of defaultPosts) {
 		const postNumericId = postIds.get(post.filePath) ?? 0;
@@ -307,31 +357,43 @@ function generateRules() {
 
 		for (const slug of sourceSlugs) {
 			const postPath = withTrailingSlash(`/posts/${slug}`);
-			addRedirect(exactRules, postPath, destination);
-			addRedirect(exactRules, postPath.replace(/\/$/, ""), destination);
+			addExactRedirect(postPath, destination);
+			addExactRedirect(postPath.replace(/\/$/, ""), destination);
 
 			if (defaultLocale) {
 				const localizedPostPath = withTrailingSlash(`/${defaultLocale}${postPath}`);
-				addRedirect(exactRules, localizedPostPath, destination);
-				addRedirect(exactRules, localizedPostPath.replace(/\/$/, ""), destination);
+				addExactRedirect(localizedPostPath, destination);
+				addExactRedirect(
+					localizedPostPath.replace(/\/$/, ""),
+					destination,
+				);
 			}
 		}
 
 		if (postNumericId > 0) {
 			const numericPath = withTrailingSlash(`/${postNumericId}`);
-			addRedirect(exactRules, numericPath, destination);
-			addRedirect(exactRules, numericPath.replace(/\/$/, ""), destination);
+			const numericCanonicalPathname = getBuiltCanonicalPathname(
+				outputDir,
+				numericPath,
+			);
+			const numericPathIsRealRoute =
+				numericCanonicalPathname &&
+				numericCanonicalPathname !== normalizeRoutePathname(destination);
 
-			if (defaultLocale) {
-				const localizedNumericPath = withTrailingSlash(
-					`/${defaultLocale}${numericPath}`,
-				);
-				addRedirect(exactRules, localizedNumericPath, destination);
-				addRedirect(
-					exactRules,
-					localizedNumericPath.replace(/\/$/, ""),
-					destination,
-				);
+			if (!numericPathIsRealRoute) {
+				addExactRedirect(numericPath, destination);
+				addExactRedirect(numericPath.replace(/\/$/, ""), destination);
+
+				if (defaultLocale) {
+					const localizedNumericPath = withTrailingSlash(
+						`/${defaultLocale}${numericPath}`,
+					);
+					addExactRedirect(localizedNumericPath, destination);
+					addExactRedirect(
+						localizedNumericPath.replace(/\/$/, ""),
+						destination,
+					);
+				}
 			}
 		}
 	}
@@ -359,8 +421,8 @@ function generateRules() {
 
 		for (const legacyPath of legacyPaths) {
 			const withSlash = withTrailingSlash(legacyPath);
-			addRedirect(exactRules, withSlash, destination);
-			addRedirect(exactRules, withSlash.replace(/\/$/, ""), destination);
+			addExactRedirect(withSlash, destination);
+			addExactRedirect(withSlash.replace(/\/$/, ""), destination);
 		}
 	}
 
@@ -401,9 +463,73 @@ function writeRedirects(outFile, generatedLines) {
 	writeFileSync(outFile, `${content}\n`);
 }
 
+function redirectSourceMatchesPathname(source, pathname) {
+	const sourcePattern = source
+		.split(/(\*|:[A-Za-z][A-Za-z0-9_]*)/g)
+		.map((token) => {
+			if (token === "*") {
+				return ".*";
+			}
+			if (/^:[A-Za-z][A-Za-z0-9_]*$/.test(token)) {
+				return "[^/]+";
+			}
+			return token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		})
+		.join("");
+	return new RegExp(`^${sourcePattern}$`).test(pathname);
+}
+
+function assertSitemapUrlsDoNotRedirect(outputDir, redirectsFile) {
+	const sitemapFiles = readdirSync(outputDir)
+		.filter((entry) => /^sitemap-\d+\.xml$/.test(entry))
+		.map((entry) => path.join(outputDir, entry));
+	if (sitemapFiles.length === 0 || !existsSync(redirectsFile)) {
+		return;
+	}
+
+	const sitemapPathnames = new Set();
+	for (const sitemapFile of sitemapFiles) {
+		const xml = readFileSync(sitemapFile, "utf8");
+		for (const match of xml.matchAll(/<loc>([^<]+)<\/loc>/g)) {
+			try {
+				sitemapPathnames.add(
+					new URL(match[1].replaceAll("&amp;", "&")).pathname,
+				);
+			} catch {
+				// Astro owns sitemap URL generation; malformed entries are checked
+				// elsewhere and should not hide redirect conflicts in valid entries.
+			}
+		}
+	}
+
+	const redirectSources = readFileSync(redirectsFile, "utf8")
+		.split(/\r?\n/)
+		.map((line) => line.trim())
+		.filter((line) => line && !line.startsWith("#"))
+		.flatMap((line) => {
+			const [source, , status = "302"] = line.split(/\s+/);
+			return /^3\d\d!?$/.test(status) ? [source] : [];
+		});
+	const conflicts = [...sitemapPathnames].filter((pathname) =>
+		redirectSources.some((source) =>
+			redirectSourceMatchesPathname(source, pathname),
+		),
+	);
+
+	if (conflicts.length > 0) {
+		throw new Error(
+			`SEO redirect rules shadow sitemap URLs:\n${conflicts
+				.slice(0, 20)
+				.map((pathname) => `- ${pathname}`)
+				.join("\n")}`,
+		);
+	}
+}
+
 const { outFile } = parseArgs();
-const rules = generateRules();
+const rules = generateRules(path.dirname(outFile));
 writeRedirects(outFile, rules);
+assertSitemapUrlsDoNotRedirect(path.dirname(outFile), outFile);
 console.log(
 	`Generated ${rules.filter((line) => line.includes(" 301")).length} SEO redirects at ${path.relative(ROOT, outFile)}`,
 );

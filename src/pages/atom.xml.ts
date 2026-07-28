@@ -7,11 +7,12 @@ import { parse as htmlParser } from "node-html-parser";
 import sanitizeHtml from "sanitize-html";
 
 import { profileConfig, siteConfig } from "@/config";
+import { getDefaultLocaleInfo } from "@/i18n/locale";
 import { getSortedPosts } from "@/utils/content-utils";
 import { resolvePostContentImageImportPath } from "@/utils/feed-image-utils";
 import { initPostIdMap } from "@/utils/permalink-utils";
 import { getPostPublicDescription } from "@/utils/post-card-content";
-import { getPostUrl } from "@/utils/url-utils";
+import { getPostUrlForLocale } from "@/utils/url-utils";
 
 const markdownParser = new MarkdownIt();
 
@@ -27,7 +28,8 @@ export async function GET(context: APIContext) {
 
 	// Use the same ordering as site listing (pinned first, then by published desc)
 	// 过滤掉加密文章和草稿文章
-	const posts = (await getSortedPosts()).filter(
+	const defaultLocale = getDefaultLocaleInfo();
+	const posts = (await getSortedPosts(defaultLocale.lang)).filter(
 		(post) => !post.data.encrypted && post.data.draft !== true,
 	);
 
@@ -89,7 +91,10 @@ export async function GET(context: APIContext) {
 		}
 
 		// 添加Atom条目
-		const postUrl = new URL(getPostUrl(post), context.site).href;
+		const postUrl = new URL(
+			getPostUrlForLocale(post, defaultLocale.path),
+			context.site,
+		).href;
 		const content = sanitizeHtml(html.toString(), {
 			allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),
 		});

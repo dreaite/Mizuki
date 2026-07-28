@@ -20,6 +20,7 @@ const { category, class: className } = Astro.props;
 	<div class="flex flex-row flex-nowrap items-center">
 		<a
 			href={getCategoryUrl(category || "")}
+			data-no-swup
 			aria-label={`View all posts in the ${category} category`}
 			class="link-lg transition text-50 text-sm font-medium hover:text-(--primary) dark:hover:text-(--primary) whitespace-nowrap"
 		>

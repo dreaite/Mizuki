@@ -46,7 +46,12 @@ import {
 import { permalinkConfig } from "@/config";
 
 import { profileConfig, siteConfig } from "../config";
-import { getDefaultLocaleInfo, setCurrentLocaleContext } from "../i18n/locale";
+import {
+	getDefaultLocaleInfo,
+	getLocaleInfoByLang,
+	getLocaleInfoByPath,
+	setCurrentLocaleContext,
+} from "../i18n/locale";
 import { formatDateToYYYYMMDD } from "../utils/date-utils";
 import { getStructuredDataImageUrl } from "../utils/seo-image";
 
@@ -172,6 +177,10 @@ const jsonLdImage = getStructuredDataImageUrl(
 	Astro.site,
 	siteConfig,
 );
+const structuredDataLanguage = entry.data.lang
+	? getLocaleInfoByLang(entry.data.lang).htmlLang
+	: getLocaleInfoByPath(Astro.props.localePath)?.htmlLang ||
+		siteConfig.lang.replace("_", "-");
 
 const jsonLd = {
 	"@context": "https://schema.org",
@@ -185,9 +194,7 @@ const jsonLd = {
 		url: Astro.site,
 	},
 	datePublished: formatDateToYYYYMMDD(entry.data.published),
-	inLanguage: entry.data.lang
-		? entry.data.lang.replace("_", "-")
-		: Astro.props.localePath,
+	inLanguage: structuredDataLanguage,
 	...(jsonLdImage ? { image: [jsonLdImage] } : {}),
 };
 ---

@@ -2,11 +2,13 @@
   Access-Control-Allow-Origin: *
   Access-Control-Allow-Methods: GET
   Access-Control-Max-Age: 86400
+  X-Robots-Tag: noindex, follow
 
 /rss.xml
   Access-Control-Allow-Origin: *
   Access-Control-Allow-Methods: GET
   Access-Control-Max-Age: 86400
+  X-Robots-Tag: noindex, follow
 
 /*
   Cache-Control: public, max-age=3600, must-revalidate

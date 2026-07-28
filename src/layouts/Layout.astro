@@ -35,6 +35,7 @@ interface Props {
 	coverImage?: string;
 	canonicalPath?: string;
 	alternateLocalePaths?: LocaleSwitchPathMap;
+	noIndex?: boolean;
 }
 
 let {
@@ -47,6 +48,7 @@ let {
 	coverImage,
 	canonicalPath,
 	alternateLocalePaths = {},
+	noIndex = false,
 } = Astro.props;
 
 const routeLocale = setCurrentLocaleContextFromPath(Astro.url.pathname);
@@ -193,6 +195,7 @@ const bannerOffset =
 			configHue={configHue}
 			canonicalPath={canonicalPath}
 			alternateLocalePaths={alternateLocalePaths}
+			noIndex={noIndex}
 		/>
 
 		<!-- defines global css variables. This will be applied to <html> <body> and some other elements idk why -->

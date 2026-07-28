@@ -44,6 +44,7 @@ interface Props {
 	publishedDate?: Date;
 	category?: string;
 	wordCount?: number;
+	noIndex?: boolean;
 }
 
 // 获取 banner 图片
@@ -62,6 +63,7 @@ const {
 	publishedDate,
 	category,
 	wordCount,
+	noIndex = false,
 } = Astro.props;
 const hasBannerCredit = siteConfig.banner.credit.enable;
 const hasBannerLink = !!siteConfig.banner.credit.url;
@@ -122,6 +124,7 @@ const canonicalPath = alternateLocalePaths[currentLocalePath];
 	coverImage={coverImage}
 	canonicalPath={canonicalPath}
 	alternateLocalePaths={alternateLocalePaths}
+	noIndex={noIndex}
 >
 	<GridScripts
 		navbarTransparentMode={siteConfig.banner?.navbar?.transparentMode ||

@@ -15,7 +15,7 @@ interface Props {
 const { badge, url, label } = Astro.props;
 ---
 
-<a href={url} aria-label={label}>
+<a href={url} aria-label={label} data-no-swup>
 	<button
 		class:list={`
             w-full

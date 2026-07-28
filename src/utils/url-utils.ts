@@ -88,7 +88,9 @@ export function getTagUrl(tag: string): string {
 	if (!tag) {
 		return localizedUrl("/archive/");
 	}
-	return localizedUrl(`/archive/?tag=${encodeURIComponent(tag.trim())}`);
+	return localizedUrl(
+		`/archive/#${new URLSearchParams({ tag: tag.trim() }).toString()}`,
+	);
 }
 
 export function getCategoryUrl(category: string | null): string {
@@ -97,10 +99,12 @@ export function getCategoryUrl(category: string | null): string {
 		category.trim() === "" ||
 		category.trim().toLowerCase() === i18n(I18nKey.uncategorized).toLowerCase()
 	) {
-		return localizedUrl("/archive/?uncategorized=true");
+		return localizedUrl("/archive/#uncategorized=true");
 	}
 	return localizedUrl(
-		`/archive/?category=${encodeURIComponent(category.trim())}`,
+		`/archive/#${new URLSearchParams({
+			category: category.trim(),
+		}).toString()}`,
 	);
 }
 

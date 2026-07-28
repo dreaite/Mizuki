@@ -1,8 +1,14 @@
+import { getDefaultLocaleInfo, getLocaleInfoByLang } from "../../i18n/locale";
 import { getSortedPosts } from "../../utils/content-utils";
-import { getPostUrl } from "../../utils/url-utils";
+import { initPostIdMap } from "../../utils/permalink-utils";
+import { getPostUrlForLocale } from "../../utils/url-utils";
 
 export async function getCalendarPostsData(preferredLang?: string | null) {
-	const posts = await getSortedPosts(preferredLang);
+	const locale = preferredLang
+		? getLocaleInfoByLang(preferredLang)
+		: getDefaultLocaleInfo();
+	const posts = await getSortedPosts(locale.lang);
+	initPostIdMap(posts);
 	return posts.map((post) => {
 		const date = new Date(post.data.published);
 		const year = date.getFullYear();
@@ -13,7 +19,7 @@ export async function getCalendarPostsData(preferredLang?: string | null) {
 			id: post.id,
 			title: post.data.title,
 			date: `${year}-${month}-${day}`,
-			url: getPostUrl(post),
+			url: getPostUrlForLocale(post, locale.path),
 		};
 	});
 }

@@ -9,11 +9,12 @@ import { parse as htmlParser } from "node-html-parser";
 import sanitizeHtml from "sanitize-html";
 
 import { siteConfig } from "@/config";
+import { getDefaultLocaleInfo } from "@/i18n/locale";
 import { getSortedPosts } from "@/utils/content-utils";
 import { resolvePostContentImageImportPath } from "@/utils/feed-image-utils";
 import { initPostIdMap } from "@/utils/permalink-utils";
 import { getPostPublicDescription } from "@/utils/post-card-content";
-import { getPostUrl } from "@/utils/url-utils";
+import { getPostUrlForLocale } from "@/utils/url-utils";
 
 const markdownParser = new MarkdownIt();
 
@@ -28,7 +29,10 @@ export async function GET(context: APIContext) {
 	}
 
 	// Use the same ordering as site listing (pinned first, then by published desc)
-	const posts = (await getSortedPosts()).filter((post) => !post.data.encrypted);
+	const defaultLocale = getDefaultLocaleInfo();
+	const posts = (await getSortedPosts(defaultLocale.lang)).filter(
+		(post) => !post.data.encrypted,
+	);
 
 	// 初始化文章 ID 映射（用于 permalink 功能）
 	initPostIdMap(posts);
@@ -82,7 +86,7 @@ export async function GET(context: APIContext) {
 			title: post.data.title,
 			description: getPostPublicDescription(post.data),
 			pubDate: post.data.published,
-			link: getPostUrl(post),
+			link: getPostUrlForLocale(post, defaultLocale.path),
 			// sanitize the new html string with corrected image paths
 			content: sanitizeHtml(html.toString(), {
 				allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),

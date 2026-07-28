@@ -121,6 +121,7 @@ const homeContent = getPostHomeContent(
 					tags.map((tag) => (
 						<a
 							href={getTagUrl(tag)}
+							data-no-swup
 							class:list={[
 								siteConfig.tagStyle?.useNewStyle
 									? "link-lg transition text-50 text-xs font-medium px-2 py-1 rounded-lg hover:text-(--primary) dark:hover:text-(--primary) active:text-(--primary) dark:active:text-(--primary) group/tag whitespace-nowrap"

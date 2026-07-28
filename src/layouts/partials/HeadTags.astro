@@ -36,6 +36,7 @@ interface Props {
 	configHue: number;
 	canonicalPath?: string;
 	alternateLocalePaths?: LocaleSwitchPathMap;
+	noIndex?: boolean;
 }
 
 const {
@@ -46,6 +47,7 @@ const {
 	configHue,
 	canonicalPath,
 	alternateLocalePaths = {},
+	noIndex = false,
 } = Astro.props;
 
 // 关键词
@@ -84,15 +86,16 @@ const defaultAlternateHref = alternateLinks.find(
 
 <!-- SEO Meta Tags -->
 <title>{title}</title>
-<link rel="canonical" href={canonicalHref} />
+{!noIndex && <link rel="canonical" href={canonicalHref} />}
 {
-	shouldEmitAlternates &&
+	!noIndex &&
+		shouldEmitAlternates &&
 		alternateLinks.map(({ locale, href }) => (
 			<link rel="alternate" hreflang={locale.htmlLang} href={href} />
 		))
 }
 {
-	shouldEmitAlternates && defaultAlternateHref && (
+	!noIndex && shouldEmitAlternates && defaultAlternateHref && (
 		<link rel="alternate" hreflang="x-default" href={defaultAlternateHref} />
 	)
 }
@@ -103,11 +106,16 @@ const defaultAlternateHref = alternateLinks.find(
 	)
 }
 <meta name="author" content={profileConfig.name} />
-<meta name="robots" content="max-image-preview:large" />
+<meta
+	name="robots"
+	content={noIndex
+		? "noindex, follow, max-image-preview:large"
+		: "max-image-preview:large"}
+/>
 
 <!-- Open Graph Tags -->
 <meta property="og:site_name" content={siteConfig.title} />
-<meta property="og:url" content={canonicalHref} />
+{!noIndex && <meta property="og:url" content={canonicalHref} />}
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description || title} />
 {ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
@@ -123,7 +131,7 @@ const defaultAlternateHref = alternateLinks.find(
 
 <!-- Twitter Card Tags -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta property="twitter:url" content={canonicalHref} />
+{!noIndex && <meta property="twitter:url" content={canonicalHref} />}
 <meta name="twitter:title" content={title} />
 <meta name="twitter:description" content={description || title} />
 {ogImageUrl && <meta name="twitter:image" content={ogImageUrl} />}

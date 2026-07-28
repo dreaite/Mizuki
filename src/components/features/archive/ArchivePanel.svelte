@@ -10,12 +10,9 @@ let {
 	sortedPosts = [],
 }: ArchivePanelProps = $props();
 
-const params = new URLSearchParams(window.location.search);
-tags = params.has("tag") ? params.getAll("tag") : [];
-categories = params.has("category") ? params.getAll("category") : [];
-const uncategorized = params.get("uncategorized");
-
 let groups = $state<Group[]>([]);
+
+const archiveFilterKeys = ["tag", "category", "uncategorized"] as const;
 
 function formatDate(date: Date) {
 	const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -27,7 +24,46 @@ function formatTag(tagList: string[]) {
 	return tagList.map((t) => `#${t}`).join(" ");
 }
 
-onMount(async () => {
+function hasArchiveFilter(params: URLSearchParams) {
+	return archiveFilterKeys.some((key) => params.has(key));
+}
+
+function getArchiveFilterParams() {
+	const hashParams = new URLSearchParams(window.location.hash.slice(1));
+	if (hasArchiveFilter(hashParams)) {
+		return hashParams;
+	}
+	return new URLSearchParams(window.location.search);
+}
+
+function migrateLegacyQueryFilters() {
+	const currentUrl = new URL(window.location.href);
+	const hashParams = new URLSearchParams(currentUrl.hash.slice(1));
+	if (hasArchiveFilter(hashParams)) {
+		return;
+	}
+
+	const filterParams = new URLSearchParams();
+	for (const key of archiveFilterKeys) {
+		for (const value of currentUrl.searchParams.getAll(key)) {
+			filterParams.append(key, value);
+		}
+		currentUrl.searchParams.delete(key);
+	}
+
+	if (filterParams.size === 0) {
+		return;
+	}
+
+	currentUrl.hash = filterParams.toString();
+	window.history.replaceState(window.history.state, "", currentUrl);
+}
+
+function updateGroups() {
+	const params = getArchiveFilterParams();
+	tags = params.getAll("tag");
+	categories = params.getAll("category");
+	const uncategorized = params.get("uncategorized");
 	let filteredPosts: Post[] = sortedPosts;
 
 	if (tags.length > 0) {
@@ -73,6 +109,16 @@ onMount(async () => {
 	groupedPostsArray.sort((a, b) => b.year - a.year);
 
 	groups = groupedPostsArray;
+}
+
+onMount(() => {
+	migrateLegacyQueryFilters();
+	updateGroups();
+	window.addEventListener("hashchange", updateGroups);
+
+	return () => {
+		window.removeEventListener("hashchange", updateGroups);
+	};
 });
 </script>
 
