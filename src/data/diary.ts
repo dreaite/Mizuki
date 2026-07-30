@@ -1,6 +1,13 @@
 // 日记数据配置
 // 用于管理日记页面的数据
 
+export interface DiaryTranslation {
+	content: string;
+	location?: string;
+	mood?: string;
+	tags?: string[];
+}
+
 export interface DiaryItem {
 	id: number;
 	content: string;
@@ -9,6 +16,8 @@ export interface DiaryItem {
 	location?: string;
 	mood?: string;
 	tags?: string[];
+	lang?: string;
+	translations?: Record<string, DiaryTranslation>;
 }
 
 // 示例日记数据

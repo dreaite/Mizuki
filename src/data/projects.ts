@@ -1,6 +1,11 @@
 // Project data configuration file
 // Used to manage data for the project display page
 
+export interface ProjectTranslation {
+	title: string;
+	description: string;
+}
+
 export interface Project {
 	id: string;
 	title: string;
@@ -19,6 +24,8 @@ export interface Project {
 	featured?: boolean;
 	tags?: string[];
 	showImage?: boolean;
+	lang?: string;
+	translations?: Record<string, ProjectTranslation>;
 }
 
 export const projectsData: Project[] = [

@@ -9,8 +9,9 @@ import { siteConfig } from "../config";
 import { UNCATEGORIZED } from "../constants/constants";
 import { projectsData } from "../data/projects";
 import I18nKey from "../i18n/i18nKey";
-import { setCurrentLocaleContext } from "../i18n/locale";
+import { getCurrentLocaleLang, setCurrentLocaleContext } from "../i18n/locale";
 import { i18n } from "../i18n/translation";
+import { localizeDataItems } from "../utils/localized-data";
 
 setCurrentLocaleContext(Astro.props.localePath);
 
@@ -18,8 +19,13 @@ if (!siteConfig.featurePages.projects) {
 	return Astro.redirect("/404/");
 }
 
+const localizedProjectsData = localizeDataItems(
+	projectsData,
+	getCurrentLocaleLang(),
+	["title", "description"],
+);
 const categories = [
-	...new Set(projectsData.map((project) => project.category)),
+	...new Set(localizedProjectsData.map((project) => project.category)),
 ];
 
 const getProjectStartTime = (startDate: string) => {
@@ -27,7 +33,7 @@ const getProjectStartTime = (startDate: string) => {
 	return Number.isNaN(timestamp) ? 0 : timestamp;
 };
 
-const sortedProjectsData = [...projectsData].sort(
+const sortedProjectsData = [...localizedProjectsData].sort(
 	(a, b) => getProjectStartTime(b.startDate) - getProjectStartTime(a.startDate),
 );
 
@@ -68,13 +74,13 @@ const filterTabs = [
 		value: "all",
 		label: i18n(I18nKey.friendsFilterAll),
 		icon: "material-symbols:apps",
-		count: projectsData.length,
+		count: localizedProjectsData.length,
 	},
 	...categories.map((category) => ({
 		value: category,
 		label: getCategoryText(category),
 		icon: getCategoryIcon(category),
-		count: projectsData.filter((p) => p.category === category).length,
+		count: localizedProjectsData.filter((p) => p.category === category).length,
 	})),
 ];
 
@@ -100,9 +106,13 @@ const subtitle = i18n(I18nKey.projectsSubtitle);
 		<div class="card-base z-10 px-6 sm:px-9 py-6 relative w-full">
 			<PageHeader title={title} subtitle={subtitle} />
 
-			<div class="mb-8">
-				<FilterTabs tabs={filterTabs} dataAttr="category" />
-			</div>
+			{
+				localizedProjectsData.length > 0 && (
+					<div class="mb-8">
+						<FilterTabs tabs={filterTabs} dataAttr="category" />
+					</div>
+				)
+			}
 
 			<div
 				id="projects-grid"
@@ -115,13 +125,19 @@ const subtitle = i18n(I18nKey.projectsSubtitle);
 				}
 			</div>
 
-			<div id="no-results" class="hidden text-center py-16">
+			<div
+				id="no-results"
+				class:list={[
+					"text-center py-16",
+					{ hidden: localizedProjectsData.length > 0 },
+				]}
+			>
 				<Icon
 					name="material-symbols:search-off-rounded"
 					class="text-6xl text-black/15 dark:text-white/15 mb-4"
 				/>
 				<p class="text-black/40 dark:text-white/40 text-lg">
-					No matching projects
+					{i18n(I18nKey.noData)}
 				</p>
 			</div>
 		</div>

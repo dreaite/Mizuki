@@ -5,10 +5,11 @@ import MainGridLayout from "@layouts/MainGridLayout.astro";
 import { Icon } from "astro-icon/components";
 
 import { siteConfig } from "../config";
-import { getAllTags, getDiaryList } from "../data/diary";
+import { getDiaryList } from "../data/diary";
 import I18nKey from "../i18n/i18nKey";
-import { setCurrentLocaleContext } from "../i18n/locale";
+import { getCurrentLocaleLang, setCurrentLocaleContext } from "../i18n/locale";
 import { i18n } from "../i18n/translation";
+import { localizeDataItems } from "../utils/localized-data";
 
 setCurrentLocaleContext(Astro.props.localePath);
 
@@ -16,8 +17,16 @@ if (!siteConfig.featurePages.diary) {
 	return Astro.redirect("/404/");
 }
 
-const moments = getDiaryList();
-const allTags = getAllTags();
+const currentLocaleLang = getCurrentLocaleLang();
+const moments = localizeDataItems(
+	getDiaryList(),
+	currentLocaleLang,
+	["content"],
+	["content", "location", "mood", "tags"],
+);
+const allTags = [
+	...new Set(moments.flatMap((moment) => moment.tags ?? [])),
+].sort();
 
 const filterTabs = [
 	{
@@ -37,7 +46,8 @@ const minutesAgo = i18n(I18nKey.diaryMinutesAgo);
 const hoursAgo = i18n(I18nKey.diaryHoursAgo);
 const daysAgo = i18n(I18nKey.diaryDaysAgo);
 
-const diaryApiUrl = siteConfig.diaryApiUrl || "";
+const diaryApiUrl =
+	currentLocaleLang === "zh_CN" ? siteConfig.diaryApiUrl || "" : "";
 
 const title = i18n(I18nKey.diary);
 const subtitle = i18n(I18nKey.diarySubtitle);
@@ -129,7 +139,7 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 
 				{
 					moments.length === 0 && (
-						<div class="text-center py-16">
+						<div id="diary-empty-state" class="text-center py-16">
 							<Icon
 								name="material-symbols:edit-note"
 								class="text-6xl text-black/15 dark:text-white/15 mb-4"
@@ -154,18 +164,15 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 		diaryApiUrl && (
 			<script is:inline>
 				(function () {
-					const container = document.getElementById("diary-list");
-					if (!container) {return;}
-					const apiUrl = container.dataset.memosApi;
-					if (!apiUrl) {return;}
-					const minutesAgo = container.dataset.minutesAgo || "minutes ago";
-					const hoursAgo = container.dataset.hoursAgo || "hours ago";
-					const daysAgo = container.dataset.daysAgo || "days ago";
+					if (window.__diaryMemosSyncInstalled) {
+						if (window.__renderDiaryMemos) {
+							window.__renderDiaryMemos();
+						}
+						return;
+					}
+					window.__diaryMemosSyncInstalled = true;
 
-					// Derive base URL for file attachments (strip /api/...)
-					const baseUrl = apiUrl.replace(/\/api\/.*$/, "");
-
-					function transformMemosToDiary(memos) {
+					function transformMemosToDiary(memos, baseUrl) {
 						return memos
 							.filter(function (m) {
 								return (
@@ -202,16 +209,16 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 							});
 					}
 
-					function formatRelativeTime(dateString) {
+					function formatRelativeTime(dateString, labels) {
 						const date = new Date(dateString);
 						const diffInMinutes = Math.floor(
 			(Date.now() - date.getTime()) / (1000 * 60),
-		);
+						);
 						if (diffInMinutes < 60)
-							{return diffInMinutes + minutesAgo;}
+							{return diffInMinutes + labels.minutesAgo;}
 						if (diffInMinutes < 1440)
-							{return Math.floor(diffInMinutes / 60) + hoursAgo;}
-						return Math.floor(diffInMinutes / 1440) + daysAgo;
+							{return Math.floor(diffInMinutes / 60) + labels.hoursAgo;}
+						return Math.floor(diffInMinutes / 1440) + labels.daysAgo;
 					}
 
 					function escapeHtml(text) {
@@ -234,10 +241,10 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 						return "diary-images-grid";
 					}
 
-					function renderMomentCards(moments) {
+					function renderMomentCards(moments, labels) {
 						return moments
 							.map(function (moment, index) {
-								const relativeTime = formatRelativeTime(moment.date);
+								const relativeTime = formatRelativeTime(moment.date, labels);
 								const tagsAttr = (moment.tags || []).join(",");
 
 								let imagesHtml = "";
@@ -404,7 +411,17 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 					}
 
 					function fetchAndRender() {
+						const container = document.getElementById("diary-list");
+						if (!container) {return;}
+						const apiUrl = container.dataset.memosApi;
 						if (!apiUrl) {return;}
+						const labels = {
+							minutesAgo: container.dataset.minutesAgo || "minutes ago",
+							hoursAgo: container.dataset.hoursAgo || "hours ago",
+							daysAgo: container.dataset.daysAgo || "days ago",
+						};
+						// Derive base URL for file attachments (strip /api/...)
+						const baseUrl = apiUrl.replace(/\/api\/.*$/, "");
 
 						fetch(apiUrl)
 							.then(function (res) {
@@ -415,11 +432,22 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 								const memos = data.memos || [];
 								if (memos.length === 0) {return;}
 
-								const moments = transformMemosToDiary(memos);
-								const container = document.getElementById("diary-list");
-								if (!container) {return;}
+								const moments = transformMemosToDiary(memos, baseUrl);
+								if (moments.length === 0) {return;}
+								const currentContainer =
+									document.getElementById("diary-list");
+								if (
+									currentContainer !== container ||
+									currentContainer.dataset.memosApi !== apiUrl
+								) {return;}
 
-								container.innerHTML = renderMomentCards(moments);
+								currentContainer.innerHTML = renderMomentCards(
+									moments,
+									labels,
+								);
+								const emptyState =
+									document.getElementById("diary-empty-state");
+								if (emptyState) {emptyState.classList.add("hidden");}
 								updateCountDisplay(moments.length);
 								rebuildFilterTabs(moments);
 							})
@@ -427,6 +455,8 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 								// Silent fallback — static data already rendered
 							});
 					}
+
+					window.__renderDiaryMemos = fetchAndRender;
 
 					// IIFE: run immediately (handles Swup pre-render case)
 					fetchAndRender();
