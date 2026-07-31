@@ -48,6 +48,9 @@ jobs:
           CONTENT_REPO_URL: ${{ secrets.CONTENT_REPO_URL }}
           BANGUMI_AUTH_TOKEN: ${{ secrets.BANGUMI_AUTH_TOKEN }}
 
+      - name: Run SEO smoke test
+        run: pnpm run seo:smoke
+
       - name: Deploy to Cloudflare Pages
         run: npx --yes wrangler@4.99.0 pages deploy dist --project-name=mizuki --branch=master
         env:
