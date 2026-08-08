@@ -10,7 +10,10 @@ export const en: Translation = {
 
 	// Navigation bar titles
 	[Key.navLinks]: "Links",
-	[Key.navMy]: "My",
+	[Key.navDaily]: "Daily",
+	[Key.navCreate]: "Creations",
+	[Key.navAnime]: "Anime",
+	[Key.navProjects]: "Projects",
 	[Key.navAbout]: "About",
 	[Key.navOthers]: "Others",
 

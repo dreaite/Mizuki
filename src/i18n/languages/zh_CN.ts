@@ -10,7 +10,10 @@ export const zh_CN: Translation = {
 
 	// 导航栏标题
 	[Key.navLinks]: "链接",
-	[Key.navMy]: "我的",
+	[Key.navDaily]: "日常",
+	[Key.navCreate]: "创造",
+	[Key.navAnime]: "动画",
+	[Key.navProjects]: "项目",
 	[Key.navAbout]: "关于",
 	[Key.navOthers]: "其他",
 

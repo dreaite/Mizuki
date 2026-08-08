@@ -162,11 +162,11 @@ export const navBarConfig: NavBarConfig = {
 		// 	],
 		// },
 
-		// 自定义一级下拉菜单示例：个人内容页面
+		// 日常内容
 		{
-			name: "My",
-			url: "/content/",
-			icon: "material-symbols:person",
+			name: "Daily",
+			url: "#",
+			icon: "material-symbols:calendar-month",
 			children: [
 				{
 					name: "Anime",
@@ -183,18 +183,21 @@ export const navBarConfig: NavBarConfig = {
 					url: "/diary/",
 					icon: "material-symbols:book",
 				},
+			],
+		},
+
+		// 创作内容
+		{
+			name: "Create",
+			url: "#",
+			icon: "material-symbols:draw",
+			children: [
 				{
 					name: "Artworks",
 					url: "/gallery/",
 					icon: "material-symbols:palette",
 				},
 				{
-					name: "Devices",
-					url: "/devices/",
-					icon: "material-symbols:devices",
-					external: false, // 内部链接，当前页导航
-        },
-        {
 					name: "Projects",
 					url: "/projects/",
 					icon: "material-symbols:work",
@@ -224,7 +227,7 @@ export const navBarConfig: NavBarConfig = {
 			name: "Friends",
 			url: "/friends/",
 			icon: "material-symbols:group",
-    },
+		},
 
 		// 自定义一级下拉菜单示例：其他页面
 		// {

@@ -10,7 +10,10 @@ export const zh_TW: Translation = {
 
 	// 導航欄標題
 	[Key.navLinks]: "連結",
-	[Key.navMy]: "我的",
+	[Key.navDaily]: "日常",
+	[Key.navCreate]: "創造",
+	[Key.navAnime]: "動畫",
+	[Key.navProjects]: "專案",
 	[Key.navAbout]: "關於",
 	[Key.navOthers]: "其他",
 

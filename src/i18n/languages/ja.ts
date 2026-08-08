@@ -10,7 +10,10 @@ export const ja: Translation = {
 
 	// ナビゲーションバータイトル
 	[Key.navLinks]: "リンク",
-	[Key.navMy]: "私の",
+	[Key.navDaily]: "日常",
+	[Key.navCreate]: "創作",
+	[Key.navAnime]: "アニメ",
+	[Key.navProjects]: "プロジェクト",
 	[Key.navAbout]: "情報",
 	[Key.navOthers]: "その他",
 
@@ -133,15 +136,15 @@ export const ja: Translation = {
 		"まだアルバムが作成されていません。美しい思い出を追加しましょう!",
 	[Key.albumsBackToList]: "アルバムに戻る",
 
-	// 作品ギャラリー
-	[Key.artGallery]: "作品",
-	[Key.artGallerySubtitle]: "新しい順に並べたイラストと絵のコレクション",
+	// イラストギャラリー
+	[Key.artGallery]: "イラスト",
+	[Key.artGallerySubtitle]: "描いた絵やイラストを新しい順にまとめています",
 	[Key.artGalleryEmpty]: "キャンバスはまだ空です",
 	[Key.artGalleryEmptyDesc]:
-		"最初の作品を追加すると、新しい順にここへ表示されます。",
-	[Key.artGallerySocialLinks]: "ほかのプラットフォームで作品を見る",
+		"最初の一枚を追加すると、新しい順にここへ表示されます。",
+	[Key.artGallerySocialLinks]: "ほかのプラットフォームでイラストを見る",
 	[Key.artGalleryLinkPending]: "未設定",
-	[Key.artGalleryViewArtwork]: "作品を拡大表示",
+	[Key.artGalleryViewArtwork]: "イラストを拡大表示",
 
 	// デバイスページ
 	[Key.devices]: "デバイス",
