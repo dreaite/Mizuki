@@ -28,7 +28,8 @@
 		"gsc:auth": "node scripts/gsc-weekly-report.mjs --auth",
 		"gsc:weekly": "node scripts/gsc-weekly-report.mjs",
 		"gsc:analyze": "bash scripts/gsc-weekly-codex-analysis.sh",
-		"seo:smoke": "node scripts/seo-smoke-test.mjs"
+		"seo:smoke": "node scripts/seo-smoke-test.mjs",
+		"test:x-card": "node --test tests/remark-x-metadata.test.mjs"
 	},
 	"dependencies": {
 		"@astrojs/check": "^0.9.9",

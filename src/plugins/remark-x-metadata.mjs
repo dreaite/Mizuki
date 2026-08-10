@@ -1,16 +1,38 @@
 import { parse } from "node-html-parser";
 import { visit } from "unist-util-visit";
+import {
+	extractXHandle,
+	extractXProfileHandle,
+	getReadableXText,
+	normalizeXAuthor,
+	normalizeXResourceUrl,
+	parseXResourceUrl,
+} from "./x-card-utils.mjs";
 
-const DEFAULT_TIMEOUT_MS = 30000;
-const DEFAULT_MAX_BYTES = 2 * 1024 * 1024;
+const DEFAULT_TIMEOUT_MS = 10000;
+const MIN_TIMEOUT_MS = 1000;
+const MAX_TIMEOUT_MS = 30000;
+const DEFAULT_HTML_MAX_BYTES = 1024 * 1024;
+const DEFAULT_OEMBED_MAX_BYTES = 256 * 1024;
+const MAX_X_REDIRECTS = 2;
+const MAX_CONCURRENT_X_CARDS = 2;
+const MAX_CACHE_ENTRIES = 256;
+const SUCCESS_CACHE_TTL_MS = 60 * 60 * 1000;
+const FAILURE_CACHE_TTL_MS = 30 * 1000;
+const X_CARD_USER_AGENT =
+	"MizukiXCard/1.1 (+https://github.com/LyraVoid/Mizuki)";
 const xMetadataCache = new Map();
 const warnedXMetadataFailures = new Set();
+const cardFetchQueue = [];
+let activeCardFetches = 0;
 
 export function remarkXMetadata(options = {}) {
 	const timeoutMs = getTimeoutMs(options.timeoutMs);
-	const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
+	const htmlMaxBytes = options.maxBytes ?? DEFAULT_HTML_MAX_BYTES;
+	const oEmbedMaxBytes = options.oEmbedMaxBytes ?? DEFAULT_OEMBED_MAX_BYTES;
 	const shouldWarn = options.warn ?? true;
 	const shouldFetch = getFetchEnabled(options);
+	const fetchImpl = options.fetchImpl ?? globalThis.fetch;
 
 	return async (tree) => {
 		const xNodes = [];
@@ -22,15 +44,19 @@ export function remarkXMetadata(options = {}) {
 					node.type === "textDirective") &&
 				node.name === "x"
 			) {
+				node.attributes = node.attributes || {};
+				if (node.type !== "leafDirective") {
+					node.attributes["fetch-status"] = "invalid-directive";
+					return;
+				}
+
 				xNodes.push(node);
 			}
 		});
 
 		await Promise.all(
 			xNodes.map(async (node) => {
-				node.attributes = node.attributes || {};
-
-				const normalizedUrl = normalizeXUrl(node.attributes.url);
+				const normalizedUrl = normalizeXResourceUrl(node.attributes.url);
 				if (!normalizedUrl) {
 					node.attributes["fetch-status"] = "invalid-url";
 					return;
@@ -40,25 +66,35 @@ export function remarkXMetadata(options = {}) {
 				const fallbackMetadata = createFallbackXMetadata(normalizedUrl);
 
 				if (!shouldFetch) {
-					applyMetadata(node.attributes, {
-						...fallbackMetadata,
-						status: "skipped",
-					});
+					applyMetadata(
+						node.attributes,
+						prepareMetadataForNode(
+							{ ...fallbackMetadata, status: "skipped" },
+							node.attributes,
+						),
+					);
 					return;
 				}
 
-				const metadata = await getCachedXMetadata(normalizedUrl, {
+				const remoteMetadata = await getCachedXMetadata(normalizedUrl, {
+					fetchImpl,
+					htmlMaxBytes,
+					oEmbedMaxBytes,
 					timeoutMs,
-					maxBytes,
 				});
-
-				applyMetadata(
+				const metadata = prepareMetadataForNode(
+					mergeXMetadata(fallbackMetadata, remoteMetadata),
 					node.attributes,
-					mergeXMetadata(fallbackMetadata, metadata),
 				);
+				const canonicalUrl = normalizeXResourceUrl(metadata.canonical);
+				if (canonicalUrl) {
+					node.attributes.url = canonicalUrl;
+				}
+
+				applyMetadata(node.attributes, metadata);
 
 				if (shouldWarn && metadata.status === "error") {
-					warnXMetadataFailure(normalizedUrl, metadata.error);
+					warnXMetadataFailure(normalizedUrl, remoteMetadata.error);
 				}
 			}),
 		);
@@ -77,19 +113,13 @@ function applyMetadata(attributes, metadata) {
 	}
 
 	if (
-		!hasAttribute(attributes, "text") &&
-		!hasAttribute(attributes, "content") &&
-		metadata.text
+		!hasAnyAttribute(attributes, ["text", "content", "description", "desc"])
 	) {
-		attributes.text = metadata.text;
-	}
-
-	if (
-		!hasAttribute(attributes, "description") &&
-		!hasAttribute(attributes, "desc") &&
-		metadata.description
-	) {
-		attributes.description = metadata.description;
+		if (metadata.text) {
+			attributes.text = metadata.text;
+		} else if (metadata.description) {
+			attributes.description = metadata.description;
+		}
 	}
 
 	if (!hasAttribute(attributes, "image") && metadata.image) {
@@ -104,9 +134,17 @@ function applyMetadata(attributes, metadata) {
 		attributes.handle = metadata.handle;
 	}
 
+	if (!hasAttribute(attributes, "date") && metadata.date) {
+		attributes.date = metadata.date;
+	}
+
 	if (!hasAttribute(attributes, "canonical") && metadata.canonical) {
 		attributes.canonical = metadata.canonical;
 	}
+}
+
+function hasAnyAttribute(attributes, keys) {
+	return keys.some((key) => hasAttribute(attributes, key));
 }
 
 function hasAttribute(attributes, key) {
@@ -115,165 +153,298 @@ function hasAttribute(attributes, key) {
 }
 
 function getCachedXMetadata(url, options) {
-	if (!xMetadataCache.has(url)) {
-		xMetadataCache.set(
-			url,
-			fetchXMetadata(url, options).catch((error) => ({
-				status: "error",
-				error: error?.message || String(error),
-			})),
-		);
+	const now = Date.now();
+	const cached = xMetadataCache.get(url);
+	if (cached && cached.expiresAt > now) {
+		return cached.promise;
 	}
 
-	return xMetadataCache.get(url);
+	if (cached) {
+		xMetadataCache.delete(url);
+	}
+
+	const entry = {
+		expiresAt: Number.POSITIVE_INFINITY,
+		promise: null,
+	};
+	entry.promise = withXCardSlot(() => fetchXMetadata(url, options)).catch(
+		(error) => ({
+			status: "error",
+			error: formatError(error),
+		}),
+	);
+	xMetadataCache.set(url, entry);
+	pruneMetadataCache();
+
+	void entry.promise.then((metadata) => {
+		entry.expiresAt =
+			Date.now() +
+			(metadata.cacheTtlMs ??
+				(metadata.status === "ok"
+					? SUCCESS_CACHE_TTL_MS
+					: FAILURE_CACHE_TTL_MS));
+	});
+
+	return entry.promise;
 }
 
-async function fetchXMetadata(url, { timeoutMs, maxBytes }) {
+function pruneMetadataCache() {
+	while (xMetadataCache.size > MAX_CACHE_ENTRIES) {
+		const oldestKey = xMetadataCache.keys().next().value;
+		xMetadataCache.delete(oldestKey);
+	}
+}
+
+async function fetchXMetadata(
+	url,
+	{ fetchImpl, htmlMaxBytes, oEmbedMaxBytes, timeoutMs },
+) {
+	if (typeof fetchImpl !== "function") {
+		return { status: "error", error: "fetch is not available" };
+	}
+
+	const resource = parseXResourceUrl(url);
+	if (!resource) {
+		return { status: "error", error: "invalid X resource URL" };
+	}
+
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), timeoutMs);
 	timeout.unref?.();
 
 	try {
-		const response = await fetch(url, {
-			headers: {
-				accept: "text/html,application/xhtml+xml",
-				"user-agent": "MizukiXCard/1.0 (+https://github.com/LyraVoid/Mizuki)",
-			},
-			redirect: "follow",
-			signal: controller.signal,
-		});
+		const pagePromise = settleMetadataSource(
+			fetchXPageMetadata(resource, {
+				fetchImpl,
+				maxBytes: htmlMaxBytes,
+				signal: controller.signal,
+			}),
+		);
+		const oEmbedPromise =
+			resource.kind === "post"
+				? settleMetadataSource(
+						fetchXOEmbedMetadata(resource, {
+							fetchImpl,
+							maxBytes: oEmbedMaxBytes,
+							signal: controller.signal,
+						}),
+					)
+				: Promise.resolve({ status: "skipped" });
+		const [pageMetadata, oEmbedMetadata] = await Promise.all([
+			pagePromise,
+			oEmbedPromise,
+		]);
 
-		if (!response.ok) {
-			throw new Error(`HTTP ${response.status}`);
-		}
-
-		const html = await readLimitedText(response, maxBytes);
-		return {
-			...extractXMetadata(html, response.url || url),
-			status: "ok",
-		};
+		return combineRemoteMetadata(resource, pageMetadata, oEmbedMetadata);
 	} catch (error) {
-		if (error?.name === "AbortError") {
-			return { status: "error", error: `timeout after ${timeoutMs}ms` };
-		}
-
-		return { status: "error", error: formatError(error) };
+		return {
+			status: "error",
+			error:
+				error?.name === "AbortError"
+					? `timeout after ${timeoutMs}ms`
+					: formatError(error),
+		};
 	} finally {
 		clearTimeout(timeout);
 	}
 }
 
-async function readLimitedText(response, maxBytes) {
-	if (!response.body?.getReader) {
-		return trimMetadataHtml((await response.text()).slice(0, maxBytes));
+async function settleMetadataSource(promise) {
+	try {
+		return await promise;
+	} catch (error) {
+		return {
+			status: "error",
+			error:
+				error?.name === "AbortError" ? "request timed out" : formatError(error),
+		};
 	}
-
-	const reader = response.body.getReader();
-	const decoder = new TextDecoder();
-	let receivedBytes = 0;
-	let text = "";
-
-	while (receivedBytes < maxBytes) {
-		const { done, value } = await reader.read();
-
-		if (done) {
-			break;
-		}
-
-		const remainingBytes = maxBytes - receivedBytes;
-		const chunk =
-			value.byteLength > remainingBytes
-				? value.slice(0, remainingBytes)
-				: value;
-
-		receivedBytes += chunk.byteLength;
-		text += decoder.decode(chunk, { stream: true });
-
-		const metadataHtml = trimMetadataHtml(text);
-		if (metadataHtml.length !== text.length) {
-			await reader.cancel();
-			return metadataHtml;
-		}
-
-		if (value.byteLength > remainingBytes) {
-			await reader.cancel();
-			break;
-		}
-	}
-
-	return trimMetadataHtml(text + decoder.decode());
 }
 
-function trimMetadataHtml(html) {
-	const headEnd = html.toLowerCase().indexOf("</head>");
-	return headEnd === -1 ? html : html.slice(0, headEnd + "</head>".length);
-}
+async function fetchXOEmbedMetadata(resource, { fetchImpl, maxBytes, signal }) {
+	const endpoint = new URL("https://publish.x.com/oembed");
+	endpoint.searchParams.set("url", resource.url);
+	endpoint.searchParams.set("omit_script", "true");
+	endpoint.searchParams.set("hide_thread", "true");
+	endpoint.searchParams.set("dnt", "true");
+	endpoint.searchParams.set("lang", "en");
 
-function extractXMetadata(html, baseUrl) {
-	const root = parse(html);
-	const fallbackMetadata = createFallbackXMetadata(baseUrl);
-	const canonical = normalizeXUrl(
-		getMetaContent(root, ['meta[property="og:url"]']) ||
-			getLinkHref(root, ['link[rel="canonical"]']) ||
-			baseUrl,
-	);
-	const url = canonical || normalizeXUrl(baseUrl) || baseUrl;
-	const kind = getXKind(url);
-	const title = cleanXTitle(
-		getMetaContent(root, [
-			'meta[property="og:title"]',
-			'meta[name="twitter:title"]',
-		]) || cleanText(root.querySelector("title")?.textContent),
-	);
-	const description = cleanXText(
-		getMetaContent(root, [
-			'meta[property="og:description"]',
-			'meta[name="twitter:description"]',
-			'meta[name="description"]',
-		]),
-	);
-	const image = resolveHttpUrl(
-		getMetaContent(root, [
-			'meta[property="og:image"]',
-			'meta[property="og:image:url"]',
-			'meta[property="og:image:secure_url"]',
-			'meta[name="twitter:image"]',
-			'meta[name="twitter:image:src"]',
-		]),
-		baseUrl,
-	);
-	const authorFromTitle = extractAuthorFromTitle(title);
-	const handle = extractXHandle(url);
-	const author =
-		cleanText(
-			getMetaContent(root, [
-				'meta[name="author"]',
-				'meta[property="article:author"]',
-				'meta[name="twitter:creator"]',
-			]),
-		).replace(/^@/, "") ||
-		authorFromTitle.author ||
-		handle;
-	const text =
-		kind === "post"
-			? cleanXText(description || authorFromTitle.text || title)
-			: cleanXText(description);
+	const response = await fetchImpl(endpoint, {
+		headers: {
+			accept: "application/json",
+			"user-agent": X_CARD_USER_AGENT,
+		},
+		redirect: "manual",
+		signal,
+	});
+
+	if (isRedirectResponse(response)) {
+		throw new Error("oEmbed redirected unexpectedly");
+	}
+	if (!response.ok) {
+		throw new Error(`oEmbed HTTP ${response.status}`);
+	}
+	assertContentType(response, "application/json", "oEmbed");
+
+	const payload = JSON.parse(await readLimitedText(response, maxBytes));
+	const canonicalResource = parseXResourceUrl(payload.url);
+	if (!canonicalResource || canonicalResource.id !== resource.id) {
+		throw new Error("oEmbed returned a different X resource");
+	}
+
+	const root = parse(String(payload.html || ""));
+	const blockquote =
+		root.querySelector("blockquote.twitter-tweet") ||
+		root.querySelector("blockquote");
+	const text = cleanXText(extractElementText(blockquote?.querySelector("p")));
+	const author = normalizeXAuthor(payload.author_name);
+	const handle = extractXProfileHandle(payload.author_url);
+	const date = extractOEmbedDate(blockquote, resource.id);
+
+	if (!text && !author) {
+		throw new Error("oEmbed response did not contain post metadata");
+	}
 
 	return {
-		canonical: url,
-		description,
-		handle: handle || fallbackMetadata.handle,
-		author: author || fallbackMetadata.author,
-		image: shouldUseXImage(image, {
-			kind,
-			cardType: getMetaContent(root, ['meta[name="twitter:card"]']),
-		})
-			? image
-			: "",
-		kind,
-		text: text || fallbackMetadata.text,
-		title: kind === "article" ? title : "",
+		status: "ok",
+		author,
+		canonical: canonicalResource.url,
+		date,
+		handle,
+		text,
 	};
+}
+
+async function fetchXPageMetadata(resource, { fetchImpl, maxBytes, signal }) {
+	let currentResource = resource;
+
+	for (
+		let redirectCount = 0;
+		redirectCount <= MAX_X_REDIRECTS;
+		redirectCount++
+	) {
+		const response = await fetchImpl(currentResource.url, {
+			headers: {
+				accept: "text/html,application/xhtml+xml",
+				"user-agent": X_CARD_USER_AGENT,
+			},
+			redirect: "manual",
+			signal,
+		});
+
+		if (isRedirectResponse(response)) {
+			if (redirectCount === MAX_X_REDIRECTS) {
+				throw new Error("too many X redirects");
+			}
+
+			const location = response.headers.get("location");
+			const redirectedResource = parseXResourceUrl(
+				location ? new URL(location, currentResource.url).href : "",
+			);
+			if (!redirectedResource || redirectedResource.id !== resource.id) {
+				throw new Error("X redirected outside the requested resource");
+			}
+
+			currentResource = redirectedResource;
+			continue;
+		}
+
+		if (!response.ok) {
+			throw new Error(`X HTTP ${response.status}`);
+		}
+		assertContentType(response, "text/html", "X page");
+
+		const metadata = extractXPageMetadata(
+			await readLimitedText(response, maxBytes),
+			currentResource,
+		);
+		if (!hasUsefulPageMetadata(metadata)) {
+			throw new Error("X page did not expose usable metadata");
+		}
+
+		return { ...metadata, status: "ok" };
+	}
+
+	throw new Error("X metadata request failed");
+}
+
+function combineRemoteMetadata(resource, pageMetadata, oEmbedMetadata) {
+	const page = pageMetadata.status === "ok" ? pageMetadata : {};
+	const oEmbed = oEmbedMetadata.status === "ok" ? oEmbedMetadata : {};
+	const oEmbedText = isUrlOnlyText(oEmbed.text) ? "" : oEmbed.text;
+	const text = oEmbedText || page.text || oEmbed.text || "";
+	const title =
+		resource.kind === "article" ? page.title || page.description : "";
+	const metadata = {
+		status: "ok",
+		author: oEmbed.author || page.author || "",
+		canonical: oEmbed.canonical || page.canonical || resource.url,
+		date: oEmbed.date || "",
+		description: page.description || "",
+		handle: oEmbed.handle || page.handle || resource.handle,
+		image: page.image || "",
+		kind: resource.kind,
+		text,
+		title,
+		titleCandidate: page.description || page.title || "",
+	};
+
+	if (hasUsefulRemoteMetadata(metadata)) {
+		const hasAllExpectedSources =
+			pageMetadata.status === "ok" &&
+			(resource.kind === "article" || oEmbedMetadata.status === "ok");
+		return {
+			...metadata,
+			cacheTtlMs: hasAllExpectedSources
+				? SUCCESS_CACHE_TTL_MS
+				: FAILURE_CACHE_TTL_MS,
+		};
+	}
+
+	const errors = [pageMetadata.error, oEmbedMetadata.error].filter(Boolean);
+	return {
+		status: "error",
+		error: errors.join("; ") || "X metadata was unavailable",
+	};
+}
+
+function prepareMetadataForNode(metadata, attributes) {
+	const hasManualMetadata = hasAnyAttribute(attributes, [
+		"title",
+		"text",
+		"content",
+		"description",
+		"desc",
+		"image",
+	]);
+	const status =
+		metadata.status === "error" && hasManualMetadata
+			? "manual"
+			: metadata.status;
+	const requestedKind = cleanText(attributes.kind).toLowerCase();
+	const kind = ["article", "post"].includes(requestedKind)
+		? requestedKind
+		: metadata.kind;
+	if (kind !== "article") {
+		return { ...metadata, kind, status, title: "" };
+	}
+
+	const title = metadata.title || metadata.titleCandidate || "X Article";
+	const kindAwareText = cleanText(metadata.text).replace(
+		/^X post (\d+)$/,
+		"X article $1",
+	);
+	const text =
+		isUrlOnlyText(kindAwareText) ||
+		cleanText(kindAwareText) === cleanText(title)
+			? ""
+			: kindAwareText;
+	const description =
+		cleanText(metadata.description) === cleanText(title)
+			? ""
+			: metadata.description;
+
+	return { ...metadata, description, kind, status, text, title };
 }
 
 function mergeXMetadata(fallbackMetadata, metadata) {
@@ -282,12 +453,142 @@ function mergeXMetadata(fallbackMetadata, metadata) {
 		...metadata,
 		author: metadata.author || fallbackMetadata.author,
 		canonical: metadata.canonical || fallbackMetadata.canonical,
+		date: metadata.date || "",
+		description: metadata.description || "",
 		handle: metadata.handle || fallbackMetadata.handle,
 		image: metadata.image || "",
 		kind: metadata.kind || fallbackMetadata.kind,
 		text: metadata.text || fallbackMetadata.text,
 		title: metadata.title || fallbackMetadata.title,
+		titleCandidate: metadata.titleCandidate || "",
 	};
+}
+
+function extractXPageMetadata(html, resource) {
+	const root = parse(html);
+	const canonicalValue =
+		getMetaContent(root, ['meta[property="og:url"]']) ||
+		getLinkHref(root, ['link[rel="canonical"]']);
+	const canonicalResource = parseXResourceUrl(canonicalValue);
+	if (!canonicalResource || canonicalResource.id !== resource.id) {
+		throw new Error("X page returned a different resource");
+	}
+	const canonical = canonicalResource.url;
+	const rawTitle =
+		getMetaContent(root, [
+			'meta[property="og:title"]',
+			'meta[name="twitter:title"]',
+		]) || cleanText(root.querySelector("title")?.textContent);
+	if (isGenericXTitle(rawTitle)) {
+		return {
+			canonical,
+			kind: resource.kind,
+		};
+	}
+	const titleInfo = extractAuthorFromTitle(rawTitle);
+	const description = cleanXText(
+		getMetaContent(root, [
+			'meta[property="og:description"]',
+			'meta[name="twitter:description"]',
+			'meta[name="description"]',
+		]),
+	);
+	const cardType = getMetaContent(root, ['meta[name="twitter:card"]']);
+	const image = resolveTrustedXImage(
+		getMetaContent(root, [
+			'meta[property="og:image"]',
+			'meta[property="og:image:url"]',
+			'meta[property="og:image:secure_url"]',
+			'meta[name="twitter:image"]',
+			'meta[name="twitter:image:src"]',
+		]),
+		resource.url,
+		cardType,
+	);
+	const metaAuthor = normalizeXAuthor(
+		getMetaContent(root, ['meta[name="author"]']),
+	);
+	const creator = normalizeXAuthor(
+		getMetaContent(root, ['meta[name="twitter:creator"]']),
+	);
+	const articleAuthor = normalizeXAuthor(
+		getMetaContent(root, ['meta[property="article:author"]']),
+	);
+	const handle =
+		titleInfo.handle || extractXHandle(canonical) || resource.handle;
+	const author =
+		titleInfo.author || metaAuthor || creator || articleAuthor || handle;
+	const text = cleanXText(description || titleInfo.text);
+	const title =
+		resource.kind === "article" && !isGenericXTitle(rawTitle)
+			? cleanXTitle(rawTitle)
+			: "";
+
+	return {
+		author,
+		canonical,
+		description,
+		handle,
+		image,
+		kind: resource.kind,
+		text,
+		title,
+	};
+}
+
+function extractAuthorFromTitle(value) {
+	const title = cleanXTitle(value);
+	const currentMatch = title.match(
+		/^(.+?)\s+\(@([a-zA-Z0-9_]{1,15})\)\s+(?:on|在)\s+X(?:\s*:\s*[“"](.+)[”"])?$/i,
+	);
+	if (currentMatch) {
+		return {
+			author: cleanText(currentMatch[1]),
+			handle: cleanText(currentMatch[2]),
+			text: cleanXText(currentMatch[3]),
+		};
+	}
+
+	const legacyMatch = title.match(/^(.+?)\s+(?:on|在)\s+X:\s*[“"](.+)[”"]$/i);
+	return legacyMatch
+		? {
+				author: cleanText(legacyMatch[1]),
+				handle: "",
+				text: cleanXText(legacyMatch[2]),
+			}
+		: { author: "", handle: "", text: "" };
+}
+
+function extractOEmbedDate(blockquote, resourceId) {
+	if (!blockquote) {
+		return "";
+	}
+
+	for (const link of blockquote.querySelectorAll("a").reverse()) {
+		const linkedResource = parseXResourceUrl(link.getAttribute("href"));
+		if (linkedResource?.id === resourceId) {
+			return normalizeDate(link.textContent);
+		}
+	}
+
+	return "";
+}
+
+function extractElementText(element) {
+	if (!element) {
+		return "";
+	}
+
+	const html = element.innerHTML.replace(/<br\s*\/?>/gi, "\n");
+	return parse(`<div>${html}</div>`).textContent;
+}
+
+function normalizeDate(value) {
+	const cleaned = cleanText(value);
+	const timestamp = Date.parse(`${cleaned} 00:00:00 UTC`);
+	return Number.isNaN(timestamp)
+		? ""
+		: new Date(timestamp).toISOString().slice(0, 10);
 }
 
 function getMetaContent(root, selectors) {
@@ -314,14 +615,29 @@ function getLinkHref(root, selectors) {
 	return "";
 }
 
-function resolveHttpUrl(value, baseUrl) {
+function resolveTrustedXImage(value, baseUrl, cardType) {
 	if (!value) {
 		return "";
 	}
 
 	try {
 		const url = new URL(value, baseUrl);
-		return url.protocol === "http:" || url.protocol === "https:"
+		const pathname = url.pathname.toLowerCase();
+		const normalizedCardType = cleanText(cardType).toLowerCase();
+		const trustedPath =
+			pathname.includes("/media/") ||
+			pathname.includes("/tweet_video_thumb/") ||
+			pathname.includes("/amplify_video_thumb/") ||
+			pathname.includes("/card_img/");
+		const supportedCard =
+			normalizedCardType.includes("large_image") ||
+			normalizedCardType.includes("player") ||
+			pathname.includes("/media/");
+
+		return url.protocol === "https:" &&
+			url.hostname === "pbs.twimg.com" &&
+			trustedPath &&
+			supportedCard
 			? url.href
 			: "";
 	} catch {
@@ -329,166 +645,134 @@ function resolveHttpUrl(value, baseUrl) {
 	}
 }
 
-function normalizeXUrl(value) {
-	const rawValue = cleanText(value);
-	if (!rawValue) {
-		return "";
-	}
-
-	for (const candidate of [rawValue, `https://${rawValue}`]) {
-		try {
-			const url = new URL(candidate);
-			if (
-				(url.protocol === "http:" || url.protocol === "https:") &&
-				isXHostname(url.hostname)
-			) {
-				url.protocol = "https:";
-				url.hostname = "x.com";
-				return url.href;
-			}
-		} catch {
-			// Try the next candidate.
-		}
-	}
-
-	return "";
+function hasUsefulPageMetadata(metadata) {
+	return Boolean(
+		metadata.text || metadata.title || metadata.description || metadata.image,
+	);
 }
 
-function isXHostname(hostname) {
-	const normalized = hostname.toLowerCase().replace(/^www\./, "");
-	return (
-		normalized === "x.com" ||
-		normalized === "twitter.com" ||
-		normalized === "mobile.twitter.com"
+function hasUsefulRemoteMetadata(metadata) {
+	return Boolean(
+		metadata.text || metadata.title || metadata.description || metadata.image,
 	);
+}
+
+function isGenericXTitle(value) {
+	const title = cleanXTitle(value).toLowerCase();
+	return (
+		!title ||
+		title === "x" ||
+		title === "x on x" ||
+		title === "x. it’s what’s happening" ||
+		title === "x. it's what's happening"
+	);
+}
+
+function isUrlOnlyText(value) {
+	return /^https?:\/\/\S+$/i.test(cleanText(value));
+}
+
+function isRedirectResponse(response) {
+	return response.status >= 300 && response.status < 400;
+}
+
+function assertContentType(response, expectedType, label) {
+	const contentType = response.headers.get("content-type") || "";
+	if (!contentType.toLowerCase().includes(expectedType)) {
+		throw new Error(`${label} returned unexpected content type`);
+	}
+}
+
+async function readLimitedText(response, maxBytes) {
+	const limit = getByteLimit(maxBytes);
+	const contentLength = Number.parseInt(
+		response.headers.get("content-length") || "",
+		10,
+	);
+	if (Number.isFinite(contentLength) && contentLength > limit) {
+		throw new Error(`response exceeded ${limit} bytes`);
+	}
+
+	if (!response.body?.getReader) {
+		const buffer = await response.arrayBuffer();
+		if (buffer.byteLength > limit) {
+			throw new Error(`response exceeded ${limit} bytes`);
+		}
+		return new TextDecoder().decode(buffer);
+	}
+
+	const reader = response.body.getReader();
+	const decoder = new TextDecoder();
+	let receivedBytes = 0;
+	let text = "";
+
+	while (true) {
+		const { done, value } = await reader.read();
+		if (done) {
+			break;
+		}
+
+		receivedBytes += value.byteLength;
+		if (receivedBytes > limit) {
+			await reader.cancel();
+			throw new Error(`response exceeded ${limit} bytes`);
+		}
+		text += decoder.decode(value, { stream: true });
+	}
+
+	return text + decoder.decode();
+}
+
+function getByteLimit(value) {
+	const parsed = Number.parseInt(value, 10);
+	return Number.isFinite(parsed) && parsed > 0
+		? parsed
+		: DEFAULT_HTML_MAX_BYTES;
+}
+
+async function withXCardSlot(task) {
+	await acquireXCardSlot();
+	try {
+		return await task();
+	} finally {
+		releaseXCardSlot();
+	}
+}
+
+function acquireXCardSlot() {
+	if (activeCardFetches < MAX_CONCURRENT_X_CARDS) {
+		activeCardFetches += 1;
+		return Promise.resolve();
+	}
+
+	return new Promise((resolve) => cardFetchQueue.push(resolve));
+}
+
+function releaseXCardSlot() {
+	const next = cardFetchQueue.shift();
+	if (next) {
+		next();
+		return;
+	}
+
+	activeCardFetches -= 1;
 }
 
 function createFallbackXMetadata(url) {
-	const normalizedUrl = normalizeXUrl(url) || url;
-	const kind = getXKind(normalizedUrl);
-	const handle = extractXHandle(normalizedUrl);
+	const resource = parseXResourceUrl(url);
+	const normalizedUrl = resource?.url || url;
+	const kind = resource?.kind || "post";
+	const handle = resource?.handle || "";
 
 	return {
 		status: "fallback",
-		canonical: normalizedUrl,
-		kind,
-		handle,
 		author: handle,
-		title: kind === "article" ? "X Article" : "",
+		canonical: normalizedUrl,
+		handle,
+		kind,
 		text: getReadableXText(normalizedUrl),
+		title: kind === "article" ? "X Article" : "",
 	};
-}
-
-function getXKind(value) {
-	try {
-		const pathname = new URL(value).pathname;
-		return /\/(?:i\/)?article(?:s)?\//i.test(pathname) ||
-			/\/articles?\//i.test(pathname)
-			? "article"
-			: "post";
-	} catch {
-		return "post";
-	}
-}
-
-function extractXHandle(value) {
-	try {
-		const segments = new URL(value).pathname.split("/").filter(Boolean);
-		const handle = segments[0];
-		if (
-			!handle ||
-			handle === "i" ||
-			handle === "intent" ||
-			handle === "share"
-		) {
-			return "";
-		}
-
-		return handle;
-	} catch {
-		return "";
-	}
-}
-
-function cleanXTitle(value) {
-	return cleanText(value).replace(/\s*\/\s*X\s*$/, "");
-}
-
-function cleanXText(value) {
-	return cleanText(value)
-		.replace(/^["“]|["”]$/g, "")
-		.replace(/\s+pic\.twitter\.com\/\S+$/i, "")
-		.replace(/\s+https?:\/\/t\.co\/\S+$/i, "")
-		.trim();
-}
-
-function extractAuthorFromTitle(title) {
-	const match = cleanText(title).match(
-		/^(.+?)\s+(?:on|在)\s+X:\s*[“"](.+)[”"]$/i,
-	);
-	if (!match) {
-		return { author: "", text: "" };
-	}
-
-	return {
-		author: cleanText(match[1]),
-		text: cleanXText(match[2]),
-	};
-}
-
-function shouldUseXImage(image, { kind, cardType }) {
-	if (!image) {
-		return false;
-	}
-
-	try {
-		const url = new URL(image);
-		const pathname = url.pathname.toLowerCase();
-		if (pathname.includes("/profile_images/")) {
-			return false;
-		}
-
-		if (kind === "article") {
-			return true;
-		}
-
-		const normalizedCardType = cleanText(cardType).toLowerCase();
-		if (
-			normalizedCardType.includes("large_image") ||
-			normalizedCardType.includes("player")
-		) {
-			return true;
-		}
-
-		return (
-			url.hostname === "pbs.twimg.com" &&
-			(pathname.includes("/media/") ||
-				pathname.includes("/tweet_video_thumb/") ||
-				pathname.includes("/amplify_video_thumb/"))
-		);
-	} catch {
-		return false;
-	}
-}
-
-function getReadableXText(value) {
-	try {
-		const url = new URL(value);
-		const segments = url.pathname.split("/").filter(Boolean);
-		const id = segments.find((segment, index) => {
-			const previous = segments[index - 1];
-			return (
-				/^\d+$/.test(segment) &&
-				["status", "statuses", "article"].includes(previous)
-			);
-		});
-
-		return id
-			? `X ${getXKind(value) === "article" ? "article" : "post"} ${id}`
-			: "";
-	} catch {
-		return "";
-	}
 }
 
 function getFetchEnabled(options) {
@@ -512,10 +796,11 @@ function getTimeoutMs(optionValue) {
 		process.env.X_CARD_FETCH_TIMEOUT_MS ??
 		process.env.SITE_CARD_FETCH_TIMEOUT_MS;
 	const timeoutMs = Number.parseInt(rawValue, 10);
+	if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+		return DEFAULT_TIMEOUT_MS;
+	}
 
-	return Number.isFinite(timeoutMs) && timeoutMs > 0
-		? timeoutMs
-		: DEFAULT_TIMEOUT_MS;
+	return Math.min(MAX_TIMEOUT_MS, Math.max(MIN_TIMEOUT_MS, timeoutMs));
 }
 
 function warnXMetadataFailure(url, error) {
@@ -525,6 +810,18 @@ function warnXMetadataFailure(url, error) {
 
 	warnedXMetadataFailures.add(url);
 	console.warn(`[x-card] Failed to fetch metadata for ${url}: ${error}`);
+}
+
+function cleanXTitle(value) {
+	return cleanText(value).replace(/\s*\/\s*X\s*$/, "");
+}
+
+function cleanXText(value) {
+	return cleanText(value)
+		.replace(/^["“]|["”]$/g, "")
+		.replace(/(?:\s+|^)pic\.twitter\.com\/\S+$/i, "")
+		.replace(/(?:\s+|^)https?:\/\/(?:t\.co|x\.com)\/\S+$/i, "")
+		.trim();
 }
 
 function formatError(error) {

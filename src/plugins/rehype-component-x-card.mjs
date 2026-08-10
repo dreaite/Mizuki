@@ -1,17 +1,28 @@
 /// <reference types="mdast" />
 import { h } from "hastscript";
+import {
+	extractXHandle,
+	extractXProfileHandle,
+	getReadableXText,
+	getXResourceKind,
+	normalizeXAuthor,
+	normalizeXResourceUrl,
+} from "./x-card-utils.mjs";
 
 export function XCardComponent(properties, children) {
-	if (Array.isArray(children) && children.length !== 0) {
-		return h("div", { class: "hidden" }, [
-			'Invalid directive. ("x" directive must be leaf type "::x{url="https://x.com/user/status/123"}")',
-		]);
+	const fetchStatus = pick(properties, ["fetchStatus", "fetch-status"]);
+	if (fetchStatus === "invalid-directive") {
+		return createInvalidDirectiveMessage();
 	}
 
-	const url = normalizeXUrl(pick(properties, ["url"]));
+	if (Array.isArray(children) && children.length !== 0) {
+		return createInvalidDirectiveMessage();
+	}
+
+	const url = normalizeXResourceUrl(pick(properties, ["url"]));
 	if (!url) {
 		return h("div", { class: "hidden" }, [
-			'Invalid X URL. ("url" attribute must be an x.com or twitter.com URL)',
+			'Invalid X URL. ("url" must point to an X post or article)',
 		]);
 	}
 
@@ -24,7 +35,10 @@ export function XCardComponent(properties, children) {
 	const author = cleanAuthor(pick(properties, ["author"]));
 	const handle =
 		cleanHandle(pick(properties, ["handle"])) || extractXHandle(url);
-	const fetchStatus = pick(properties, ["fetchStatus", "fetch-status"]);
+	const date = cleanDate(pick(properties, ["date"]));
+	if (fetchStatus === "error") {
+		return createFallbackLink(url);
+	}
 	const className = [
 		"card-x",
 		"no-styling",
@@ -44,6 +58,7 @@ export function XCardComponent(properties, children) {
 			target: "_blank",
 		},
 		[
+			image ? createXCardImage(image) : null,
 			h(
 				"div",
 				{ class: "xc-body" },
@@ -55,11 +70,7 @@ export function XCardComponent(properties, children) {
 							h("span", { class: "xc-logo", "aria-hidden": "true" }, "X"),
 							h("span", { class: "xc-author" }, formatAuthor(author)),
 							handle ? h("span", { class: "xc-handle" }, `@${handle}`) : null,
-							h(
-								"span",
-								{ class: "xc-kind" },
-								kind === "article" ? "Article" : "Post",
-							),
+							h("span", { class: "xc-kind" }, formatKind(kind, date)),
 						].filter(Boolean),
 					),
 					title ? h("div", { class: "xc-title" }, title) : null,
@@ -67,8 +78,25 @@ export function XCardComponent(properties, children) {
 					h("div", { class: "xc-url" }, formatDisplayUrl(url)),
 				].filter(Boolean),
 			),
-			image ? createXCardImage(image) : null,
 		].filter(Boolean),
+	);
+}
+
+function createInvalidDirectiveMessage() {
+	return h("div", { class: "hidden" }, [
+		'Invalid directive. ("x" directive must be leaf type "::x{url="https://x.com/user/status/123"}")',
+	]);
+}
+
+function createFallbackLink(url) {
+	return h(
+		"a",
+		{
+			href: url,
+			rel: "nofollow noopener noreferrer",
+			target: "_blank",
+		},
+		formatDisplayUrl(url),
 	);
 }
 
@@ -95,54 +123,13 @@ function pick(properties, keys) {
 	return "";
 }
 
-function normalizeXUrl(value) {
-	if (!value) {
-		return "";
-	}
-
-	for (const candidate of [value, `https://${value}`]) {
-		try {
-			const url = new URL(candidate);
-			if (
-				(url.protocol === "http:" || url.protocol === "https:") &&
-				isXHostname(url.hostname)
-			) {
-				url.protocol = "https:";
-				url.hostname = "x.com";
-				return url.href;
-			}
-		} catch {
-			// Try the next candidate.
-		}
-	}
-
-	return "";
-}
-
-function isXHostname(hostname) {
-	const normalized = hostname.toLowerCase().replace(/^www\./, "");
-	return (
-		normalized === "x.com" ||
-		normalized === "twitter.com" ||
-		normalized === "mobile.twitter.com"
-	);
-}
-
 function normalizeKind(value, url) {
 	const kind = value.toLowerCase();
 	if (kind === "article" || kind === "post") {
 		return kind;
 	}
 
-	try {
-		const pathname = new URL(url).pathname;
-		return /\/(?:i\/)?article(?:s)?\//i.test(pathname) ||
-			/\/articles?\//i.test(pathname)
-			? "article"
-			: "post";
-	} catch {
-		return "post";
-	}
+	return getXResourceKind(url);
 }
 
 function sanitizeAssetUrl(value) {
@@ -179,48 +166,20 @@ function formatAuthor(author) {
 }
 
 function cleanAuthor(value) {
-	return value.replace(/^@/, "").trim();
+	return normalizeXAuthor(value);
 }
 
 function cleanHandle(value) {
-	return value.replace(/^@/, "").trim();
+	return extractXProfileHandle(value);
 }
 
-function extractXHandle(value) {
-	try {
-		const segments = new URL(value).pathname.split("/").filter(Boolean);
-		const handle = segments[0];
-		if (
-			!handle ||
-			handle === "i" ||
-			handle === "intent" ||
-			handle === "share"
-		) {
-			return "";
-		}
-
-		return handle;
-	} catch {
-		return "";
-	}
+function cleanDate(value) {
+	return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
 }
 
-function getReadableXText(value) {
-	try {
-		const url = new URL(value);
-		const segments = url.pathname.split("/").filter(Boolean);
-		const id = segments.find((segment, index) => {
-			const previous = segments[index - 1];
-			return (
-				/^\d+$/.test(segment) &&
-				["status", "statuses", "article"].includes(previous)
-			);
-		});
-
-		return id ? `X ${normalizeKind("", value)} ${id}` : "";
-	} catch {
-		return "";
-	}
+function formatKind(kind, date) {
+	const label = kind === "article" ? "Article" : "Post";
+	return date ? `${label} · ${date}` : label;
 }
 
 function formatDisplayUrl(value) {

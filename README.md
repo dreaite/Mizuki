@@ -232,6 +232,7 @@ Mizuki supports enhanced features beyond standard GitHub Flavored Markdown:
 - **Math Formulas:** Write LaTeX math formulas using `$inline$` and `$$block$$` syntax
 - **Code Highlighting:** Advanced syntax highlighting with line numbers and copy buttons
 - **GitHub Cards:** Embed repository cards using `::github{repo="user/repo"}`
+- **X Cards:** Embed a public post using `::x{url="https://x.com/user/status/123"}`. For an X Article, prefer its wrapper post URL with `kind="article"`; direct `/i/article/…` URLs may require manual `title`, `text`, and `image` attributes because X does not expose anonymous metadata for every Article.
 
 ### 🎨 Visual Elements
 
@@ -258,6 +259,7 @@ All commands are run from the project root:
 | `pnpm check`               | Run Astro error checking                   |
 | `pnpm format`              | Format code with Prettier                  |
 | `pnpm lint`                | Check and fix code issues                  |
+| `pnpm test:x-card`         | Run offline X card regression tests        |
 | `pnpm new-post <filename>` | Create a new blog post                     |
 | `pnpm astro ...`           | Run Astro CLI commands                     |
 

@@ -45,6 +45,8 @@ jobs:
           ENABLE_CONTENT_SYNC: "true"
           SITE_CARD_FETCH_METADATA: "true"
           SITE_CARD_FETCH_TIMEOUT_MS: "30000"
+          X_CARD_FETCH_METADATA: "true"
+          X_CARD_FETCH_TIMEOUT_MS: "10000"
           CONTENT_REPO_URL: ${{ secrets.CONTENT_REPO_URL }}
           BANGUMI_AUTH_TOKEN: ${{ secrets.BANGUMI_AUTH_TOKEN }}
 
