@@ -86,7 +86,7 @@ const dateFormatter = new Intl.DateTimeFormat(
 
 <style is:global>
 	.artwork-wall {
-		column-width: 260px;
+		column-count: 1;
 		column-gap: 0.875rem;
 	}
 
@@ -95,10 +95,9 @@ const dateFormatter = new Intl.DateTimeFormat(
 		margin-bottom: 0.875rem;
 	}
 
-	@media (width < 480px) {
+	@media (width >= 768px) {
 		.artwork-wall {
-			column-width: auto;
-			column-count: 1;
+			column-count: 2;
 		}
 	}
 </style>
