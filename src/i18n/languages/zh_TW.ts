@@ -87,6 +87,14 @@ export const zh_TW: Translation = {
 		"請在 src/config/siteConfig.ts 檔案中設定您的 Bilibili vmid",
 	[Key.animeConfigBangumi]:
 		"請在 src/config/siteConfig.ts 檔案中設定您的 Bangumi userId",
+	[Key.eroge]: "Eroge",
+	[Key.erogeTitle]: "我的 Eroge 紀錄",
+	[Key.erogeSubtitle]: "記錄我的 Eroge / Galgame 遊戲旅程",
+	[Key.erogeStatusPlaying]: "在玩",
+	[Key.erogeStatusCompleted]: "玩過",
+	[Key.erogeStatusPlanned]: "想玩",
+	[Key.erogeStatusOnHold]: "擱置",
+	[Key.erogeStatusDropped]: "拋棄",
 
 	// 短文頁面
 	[Key.diarySubtitle]: "隨時隨地，分享生活",

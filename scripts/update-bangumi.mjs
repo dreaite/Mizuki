@@ -191,10 +191,10 @@ async function processData(items, status, authToken) {
 			? item.subject.date.slice(0, 4)
 			: "Unknown";
 
-		const rating = item.rate
-			? Number.parseFloat(item.rate.toFixed(1))
-			: item.subject?.score
-				? Number.parseFloat(item.subject.score.toFixed(1))
+		const personalRating = Number(item.rate);
+		const rating =
+			Number.isFinite(personalRating) && personalRating > 0
+				? personalRating
 				: 0;
 
 		const progress = item.ep_status || 0;

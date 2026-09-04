@@ -263,9 +263,8 @@ async function getData(
 		return {
 			title: bangumi?.title || "Unknown",
 			status: STATUS_MAP[status] || "planned",
-			rating: bangumi?.rating?.score
-				? parseFloat(bangumi.rating.score.toFixed(1))
-				: 0,
+			// 该接口只返回作品公共评分，不包含当前账号的个人评分。
+			rating: 0,
 			cover: cover,
 			description: description,
 			year: year,

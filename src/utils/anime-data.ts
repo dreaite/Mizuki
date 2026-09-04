@@ -24,6 +24,7 @@ export interface AnimeItem {
 	cover: string;
 	link: string;
 	status: string;
+	// 个人评分；0 表示未评分，卡片不会显示评分徽标。
 	rating: number;
 	progress: number;
 	totalEpisodes: number;
@@ -32,6 +33,15 @@ export interface AnimeItem {
 	studio: string;
 	genre: string[];
 }
+
+export type AnimeStatus =
+	| "watching"
+	| "completed"
+	| "planned"
+	| "onhold"
+	| "dropped";
+
+export type AnimeStatusLabels = Partial<Record<AnimeStatus, string>>;
 
 const localErogeModuleMap = import.meta.glob("../data/eroge.ts", {
 	eager: true,
@@ -147,36 +157,35 @@ export function getAnimeList(
 	return { animeList, currentConfig };
 }
 
-export function getStatusMap(): Record<
-	string,
-	{ text: string; class: string; icon: string }
-> {
+export function getStatusMap(
+	labels: AnimeStatusLabels = {},
+): Record<string, { text: string; class: string; icon: string }> {
 	return {
 		watching: {
-			text: i18n(I18nKey.animeStatusWatching),
+			text: labels.watching ?? i18n(I18nKey.animeStatusWatching),
 			class:
 				"bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
 			icon: "▶",
 		},
 		completed: {
-			text: i18n(I18nKey.animeStatusCompleted),
+			text: labels.completed ?? i18n(I18nKey.animeStatusCompleted),
 			class: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
 			icon: "✓",
 		},
 		planned: {
-			text: i18n(I18nKey.animeStatusPlanned),
+			text: labels.planned ?? i18n(I18nKey.animeStatusPlanned),
 			class:
 				"bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
 			icon: "❤",
 		},
 		onhold: {
-			text: i18n(I18nKey.animeStatusOnHold),
+			text: labels.onhold ?? i18n(I18nKey.animeStatusOnHold),
 			class:
 				"bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
 			icon: "⏸",
 		},
 		dropped: {
-			text: i18n(I18nKey.animeStatusDropped),
+			text: labels.dropped ?? i18n(I18nKey.animeStatusDropped),
 			class: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 			icon: "✗",
 		},

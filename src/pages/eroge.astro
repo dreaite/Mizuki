@@ -61,7 +61,14 @@ if (
 	}
 }
 
-const statusMap = getStatusMap();
+const erogeStatusLabels = {
+	planned: i18n(I18nKey.erogeStatusPlanned),
+	completed: i18n(I18nKey.erogeStatusCompleted),
+	watching: i18n(I18nKey.erogeStatusPlaying),
+	onhold: i18n(I18nKey.erogeStatusOnHold),
+	dropped: i18n(I18nKey.erogeStatusDropped),
+};
+const statusMap = getStatusMap(erogeStatusLabels);
 const INITIAL_DISPLAY_COUNT = 24;
 const visibleErogeList = erogeList.slice(0, INITIAL_DISPLAY_COUNT);
 const hiddenErogeList = erogeList.slice(INITIAL_DISPLAY_COUNT);
@@ -69,23 +76,36 @@ const showExtendedFilters = EROGE_MODE === "bangumi";
 const emptyMessage = "No eroge data available";
 ---
 
-<MainGridLayout title="Eroge" description="Record my eroge journey">
+<MainGridLayout
+	title={i18n(I18nKey.eroge)}
+	description={i18n(I18nKey.erogeSubtitle)}
+>
 	<div
 		class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32"
 	>
 		<div class="card-base anime-card-base z-10 px-9 py-6 relative w-full">
 			<div class="relative w-full mb-8">
-				<PageHeader title="My Eroge List" subtitle="Record my eroge journey" />
+				<PageHeader
+					title={i18n(I18nKey.erogeTitle)}
+					subtitle={i18n(I18nKey.erogeSubtitle)}
+				/>
 
 				<div class="mb-6">
 					<AnimeFilters
 						filterAllLabel={i18n(I18nKey.animeFilterAll)}
-						statusWatchingLabel={i18n(I18nKey.animeStatusWatching)}
-						statusPlannedLabel={i18n(I18nKey.animeStatusPlanned)}
-						statusCompletedLabel={i18n(I18nKey.animeStatusCompleted)}
-						statusOnHoldLabel={i18n(I18nKey.animeStatusOnHold)}
-						statusDroppedLabel={i18n(I18nKey.animeStatusDropped)}
+						statusWatchingLabel={erogeStatusLabels.watching}
+						statusPlannedLabel={erogeStatusLabels.planned}
+						statusCompletedLabel={erogeStatusLabels.completed}
+						statusOnHoldLabel={erogeStatusLabels.onhold}
+						statusDroppedLabel={erogeStatusLabels.dropped}
 						showExtendedFilters={showExtendedFilters}
+						statusOrder={[
+							"planned",
+							"completed",
+							"watching",
+							"onhold",
+							"dropped",
+						]}
 					/>
 				</div>
 			</div>
@@ -109,6 +129,7 @@ const emptyMessage = "No eroge data available";
 							statusMap={statusMap}
 							yearLabel={i18n(I18nKey.animeYear)}
 							studioLabel={i18n(I18nKey.animeStudio)}
+							showProgress={false}
 						/>
 					)
 				}

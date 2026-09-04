@@ -78,6 +78,14 @@ enum I18nKey {
 	animeEmptyLocal = "animeEmptyLocal",
 	animeConfigBilibili = "animeConfigBilibili",
 	animeConfigBangumi = "animeConfigBangumi",
+	eroge = "eroge",
+	erogeTitle = "erogeTitle",
+	erogeSubtitle = "erogeSubtitle",
+	erogeStatusPlaying = "erogeStatusPlaying",
+	erogeStatusCompleted = "erogeStatusCompleted",
+	erogeStatusPlanned = "erogeStatusPlanned",
+	erogeStatusOnHold = "erogeStatusOnHold",
+	erogeStatusDropped = "erogeStatusDropped",
 
 	// 短文页面
 	diarySubtitle = "diarySubtitle",

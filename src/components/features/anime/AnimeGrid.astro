@@ -27,10 +27,17 @@ interface Props {
 	statusMap: Record<string, StatusInfo>;
 	yearLabel: string;
 	studioLabel: string;
+	showProgress?: boolean;
 }
 
-const { visibleAnimeList, hiddenAnimeList, statusMap, yearLabel, studioLabel } =
-	Astro.props;
+const {
+	visibleAnimeList,
+	hiddenAnimeList,
+	statusMap,
+	yearLabel,
+	studioLabel,
+	showProgress = true,
+} = Astro.props;
 
 const hasHiddenItems = hiddenAnimeList.length > 0;
 ---
@@ -52,6 +59,7 @@ const hasHiddenItems = hiddenAnimeList.length > 0;
 					statusInfo={statusInfo}
 					yearLabel={yearLabel}
 					studioLabel={studioLabel}
+					showProgress={showProgress}
 				/>
 			);
 		})
@@ -72,6 +80,7 @@ const hasHiddenItems = hiddenAnimeList.length > 0;
 					statusInfo={statusInfo}
 					yearLabel={yearLabel}
 					studioLabel={studioLabel}
+					showProgress={showProgress}
 				/>
 			);
 		})

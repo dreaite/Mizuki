@@ -85,6 +85,14 @@ export const en: Translation = {
 		"Please set your Bilibili vmid in the src/config/siteConfig.ts file",
 	[Key.animeConfigBangumi]:
 		"Please set your Bangumi userId in the src/config/siteConfig.ts file",
+	[Key.eroge]: "Eroge",
+	[Key.erogeTitle]: "My Eroge List",
+	[Key.erogeSubtitle]: "Record my eroge journey",
+	[Key.erogeStatusPlaying]: "Playing",
+	[Key.erogeStatusCompleted]: "Played",
+	[Key.erogeStatusPlanned]: "Want to Play",
+	[Key.erogeStatusOnHold]: "On Hold",
+	[Key.erogeStatusDropped]: "Dropped",
 
 	// Diary Page
 	[Key.diarySubtitle]: "Share life, anytime, anywhere",

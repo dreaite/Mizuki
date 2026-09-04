@@ -85,6 +85,14 @@ export const ja: Translation = {
 		"src/config/siteConfig.tsファイルにBilibiliのvmidを設定してください",
 	[Key.animeConfigBangumi]:
 		"src/config/siteConfig.tsファイルにBangumiのユーザーIDを設定してください",
+	[Key.eroge]: "エロゲ",
+	[Key.erogeTitle]: "私のエロゲリスト",
+	[Key.erogeSubtitle]: "エロゲのプレイ記録",
+	[Key.erogeStatusPlaying]: "プレイ中",
+	[Key.erogeStatusCompleted]: "プレイ済み",
+	[Key.erogeStatusPlanned]: "プレイ予定",
+	[Key.erogeStatusOnHold]: "保留",
+	[Key.erogeStatusDropped]: "中断",
 
 	// 日記ページ
 	[Key.diarySubtitle]: "いつでも、どこでも生活を共有",

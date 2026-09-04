@@ -1,4 +1,6 @@
 ---
+import type { AnimeStatus } from "../../../utils/anime-data";
+
 interface Props {
 	filterAllLabel: string;
 	statusWatchingLabel: string;
@@ -7,6 +9,7 @@ interface Props {
 	statusOnHoldLabel?: string;
 	statusDroppedLabel?: string;
 	showExtendedFilters: boolean;
+	statusOrder?: AnimeStatus[];
 }
 
 const {
@@ -17,32 +20,32 @@ const {
 	statusOnHoldLabel,
 	statusDroppedLabel,
 	showExtendedFilters,
+	statusOrder = ["watching", "planned", "completed", "onhold", "dropped"],
 } = Astro.props;
+
+const statusLabels: Record<AnimeStatus, string | undefined> = {
+	watching: statusWatchingLabel,
+	planned: statusPlannedLabel,
+	completed: statusCompletedLabel,
+	onhold: statusOnHoldLabel,
+	dropped: statusDroppedLabel,
+};
+
+const visibleStatuses = statusOrder.filter(
+	(status) =>
+		showExtendedFilters || (status !== "onhold" && status !== "dropped"),
+);
 ---
 
 <div class="anime-filter-container flex flex-wrap gap-2">
 	<button class="anime-filter-tag anime-active" data-status="all"
 		>{filterAllLabel}</button
 	>
-	<button class="anime-filter-tag" data-status="watching"
-		>{statusWatchingLabel}</button
-	>
-	<button class="anime-filter-tag" data-status="planned"
-		>{statusPlannedLabel}</button
-	>
-	<button class="anime-filter-tag" data-status="completed"
-		>{statusCompletedLabel}</button
-	>
 	{
-		showExtendedFilters && (
-			<>
-				<button class="anime-filter-tag" data-status="onhold">
-					{statusOnHoldLabel}
-				</button>
-				<button class="anime-filter-tag" data-status="dropped">
-					{statusDroppedLabel}
-				</button>
-			</>
-		)
+		visibleStatuses.map((status) => (
+			<button class="anime-filter-tag" data-status={status}>
+				{statusLabels[status]}
+			</button>
+		))
 	}
 </div>

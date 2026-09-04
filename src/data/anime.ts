@@ -2,6 +2,7 @@
 export interface AnimeItem {
 	title: string;
 	status: "watching" | "completed" | "planned";
+	// 个人评分；0 表示未评分，卡片不会显示评分徽标。
 	rating: number;
 	cover: string;
 	description: string;
