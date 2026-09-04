@@ -1,6 +1,7 @@
 ---
 import { Icon } from "astro-icon/components";
 
+import { normalizeDiaryContent } from "../../../utils/diary-content.mjs";
 import { formatRelativeTime } from "../../../utils/timeFormat";
 import type { MomentCardProps } from "./types";
 
@@ -13,6 +14,7 @@ const relativeTime = formatRelativeTime(
 	hoursAgo,
 	daysAgo,
 );
+const content = normalizeDiaryContent(moment.content);
 ---
 
 <div
@@ -22,9 +24,9 @@ const relativeTime = formatRelativeTime(
 	<div class="p-5">
 		<!-- Content -->
 		<p
-			class="text-sm md:text-base text-black/90 dark:text-white/90 leading-relaxed mb-3"
+			class="text-sm md:text-base text-black/90 dark:text-white/90 leading-relaxed mb-3 whitespace-pre-line"
 		>
-			{moment.content}
+			{content}
 		</p>
 
 		<!-- Images -->

@@ -234,6 +234,12 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 						});
 					}
 
+					function normalizeDiaryContent(value) {
+						return String(value || "")
+							.replace(/\r\n?/g, "\n")
+							.replace(/<br\s*\/?>/gi, "\n");
+					}
+
 					function getImageLayoutClass(count) {
 						if (count === 1) {return "diary-images-single";}
 						if (count === 2) {return "diary-images-double";}
@@ -304,8 +310,8 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 									tagsAttr +
 									'">' +
 									'<div class="p-5">' +
-									'<p class="text-sm md:text-base text-black/90 dark:text-white/90 leading-relaxed mb-3">' +
-									escapeHtml(moment.content) +
+									'<p class="text-sm md:text-base text-black/90 dark:text-white/90 leading-relaxed mb-3 whitespace-pre-line">' +
+									escapeHtml(normalizeDiaryContent(moment.content)) +
 									"</p>" +
 									imagesHtml +
 									tagsHtml +

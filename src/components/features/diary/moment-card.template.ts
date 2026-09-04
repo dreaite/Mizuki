@@ -2,6 +2,7 @@
 // 参考: DIARY_MEMOS_SETUP.md
 
 import type { DiaryItem } from "../../../data/diary";
+import { normalizeDiaryContent } from "../../../utils/diary-content.mjs";
 
 // --- Memos API 响应类型 ---
 
@@ -173,7 +174,7 @@ function renderMomentCard(
 	return `
 	<div class="moment-card group relative bg-transparent rounded-xl border border-black/10 dark:border-white/10 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1" data-tags="${tagsAttr}">
 		<div class="p-5">
-			<p class="text-sm md:text-base text-black/90 dark:text-white/90 leading-relaxed mb-3">${escapeHtml(moment.content)}</p>
+			<p class="text-sm md:text-base text-black/90 dark:text-white/90 leading-relaxed mb-3 whitespace-pre-line">${escapeHtml(normalizeDiaryContent(moment.content))}</p>
 			${imagesHtml}
 			${tagsHtml}
 			<hr class="border-t border-black/5 dark:border-white/5 my-3" />
