@@ -1,8 +1,7 @@
 import { type CollectionEntry, getCollection } from "astro:content";
-import I18nKey from "@i18n/i18nKey";
 import { getCurrentLocaleLang, getLocaleInfoByLang } from "@i18n/locale";
-import { i18n } from "@i18n/translation";
 import { initPostIdMap } from "@utils/permalink-utils";
+import { getCategoryLabel, getTagLabel } from "./taxonomy-utils";
 import {
 	getCategoryUrl,
 	getPostUrl,
@@ -186,6 +185,7 @@ export async function getSortedPostsList(
 	return sortedPostsList;
 }
 export interface Tag {
+	key: string;
 	name: string;
 	count: number;
 }
@@ -210,10 +210,15 @@ export async function getTagList(
 		return a.toLowerCase().localeCompare(b.toLowerCase());
 	});
 
-	return keys.map((key) => ({ name: key, count: countMap[key] }));
+	return keys.map((key) => ({
+		key,
+		name: getTagLabel(key, preferredLang || getCurrentLocaleLang()),
+		count: countMap[key],
+	}));
 }
 
 export interface Category {
+	key: string;
 	name: string;
 	count: number;
 	url: string;
@@ -226,7 +231,7 @@ export async function getCategoryList(
 	const count: Record<string, number> = {};
 	allBlogPosts.forEach((post: { data: { category: string | null } }) => {
 		if (!post.data.category) {
-			const ucKey = i18n(I18nKey.uncategorized);
+			const ucKey = "";
 			count[ucKey] = count[ucKey] ? count[ucKey] + 1 : 1;
 			return;
 		}
@@ -246,7 +251,8 @@ export async function getCategoryList(
 	const ret: Category[] = [];
 	for (const c of lst) {
 		ret.push({
-			name: c,
+			key: c,
+			name: getCategoryLabel(c, preferredLang || getCurrentLocaleLang()),
 			count: count[c],
 			url: getCategoryUrl(c),
 		});

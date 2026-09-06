@@ -4,6 +4,7 @@ import { getPostHomeContent } from "@utils/post-card-content";
 import { Icon } from "astro-icon/components";
 
 import { getFileDirFromPath, getPostUrl, getTagUrl } from "@/utils/url-utils";
+import { getTagLabel } from "@/utils/taxonomy-utils";
 
 import { siteConfig } from "../../../config";
 import I18nKey from "../../../i18n/i18nKey";
@@ -127,10 +128,10 @@ const homeContent = getPostHomeContent(
 									? "link-lg transition text-50 text-xs font-medium px-2 py-1 rounded-lg hover:text-(--primary) dark:hover:text-(--primary) active:text-(--primary) dark:active:text-(--primary) group/tag whitespace-nowrap"
 									: "btn-regular h-6 text-xs px-2 rounded-lg",
 							]}
-							aria-label={`View all posts tagged with ${tag.trim()}`}
+							aria-label={`View all posts tagged with ${getTagLabel(tag)}`}
 						>
 							<span class="transition-transform group-hover/tag:translate-x-0.5">
-								# {tag.trim()}
+								# {getTagLabel(tag)}
 							</span>
 						</a>
 					))

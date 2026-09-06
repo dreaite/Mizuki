@@ -7,7 +7,7 @@ import MainGridLayout from "@layouts/MainGridLayout.astro";
 import { getSortedPostsList } from "@utils/content-utils";
 
 import { siteConfig } from "../config";
-import { setCurrentLocaleContext } from "../i18n/locale";
+import { getCurrentLocaleLang, setCurrentLocaleContext } from "../i18n/locale";
 
 setCurrentLocaleContext(Astro.props.localePath);
 const sortedPostsList = await getSortedPostsList();
@@ -53,6 +53,7 @@ const categories = [
 		sortedPosts={posts}
 		tags={tags}
 		categories={categories}
+		language={getCurrentLocaleLang()}
 		client:only="svelte"
 	/>
 </MainGridLayout>

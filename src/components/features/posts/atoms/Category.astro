@@ -1,8 +1,7 @@
 ---
 import { Icon } from "astro-icon/components";
 
-import I18nKey from "@/i18n/i18nKey";
-import { i18n } from "@/i18n/translation";
+import { getCategoryLabel } from "@/utils/taxonomy-utils";
 import { getCategoryUrl } from "@/utils/url-utils";
 
 interface Props {
@@ -11,6 +10,7 @@ interface Props {
 }
 
 const { category, class: className } = Astro.props;
+const categoryLabel = getCategoryLabel(category);
 ---
 
 <div class:list={["flex items-center", className]}>
@@ -21,10 +21,10 @@ const { category, class: className } = Astro.props;
 		<a
 			href={getCategoryUrl(category || "")}
 			data-no-swup
-			aria-label={`View all posts in the ${category} category`}
+			aria-label={`View all posts in the ${categoryLabel} category`}
 			class="link-lg transition text-50 text-sm font-medium hover:text-(--primary) dark:hover:text-(--primary) whitespace-nowrap"
 		>
-			{category || i18n(I18nKey.uncategorized)}
+			{categoryLabel}
 		</a>
 	</div>
 </div>

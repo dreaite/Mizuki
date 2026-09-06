@@ -1,4 +1,5 @@
 ---
+import { getCategoryLabel, getTagLabel } from "@/utils/taxonomy-utils";
 import { getImage } from "astro:assets";
 import type { CollectionEntry } from "astro:content";
 import { render } from "astro:content";
@@ -187,7 +188,17 @@ const jsonLd = {
 	"@type": "BlogPosting",
 	headline: entry.data.title,
 	description: publicDescription,
-	keywords: entry.data.tags,
+	keywords: entry.data.tags.map((tag) =>
+		getTagLabel(tag, structuredDataLanguage),
+	),
+	...(entry.data.category
+		? {
+				articleSection: getCategoryLabel(
+					entry.data.category,
+					structuredDataLanguage,
+				),
+			}
+		: {}),
 	author: {
 		"@type": "Person",
 		name: profileConfig.name,

@@ -12,6 +12,7 @@ import { i18n } from "@i18n/translation";
 import { permalinkConfig } from "../config";
 import { generatePermalinkSlug } from "./permalink-utils";
 import { getCanonicalPostSlugFromId } from "./post-variant-utils";
+import { resolveTaxonomyKey } from "./taxonomy-utils";
 
 /**
  * 移除文件扩展名（.md, .mdx, .markdown）
@@ -89,7 +90,7 @@ export function getTagUrl(tag: string): string {
 		return localizedUrl("/archive/");
 	}
 	return localizedUrl(
-		`/archive/#${new URLSearchParams({ tag: tag.trim() }).toString()}`,
+		`/archive/#${new URLSearchParams({ tag: resolveTaxonomyKey("tags", tag) }).toString()}`,
 	);
 }
 
@@ -103,7 +104,7 @@ export function getCategoryUrl(category: string | null): string {
 	}
 	return localizedUrl(
 		`/archive/#${new URLSearchParams({
-			category: category.trim(),
+			category: resolveTaxonomyKey("categories", category),
 		}).toString()}`,
 	);
 }

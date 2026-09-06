@@ -44,11 +44,11 @@ const archiveUrl = localizedUrl("/archive/");
 				{
 					categories.map((cat) => (
 						<a
-							href={getCategoryUrl(cat.name)}
+							href={getCategoryUrl(cat.key)}
 							data-no-swup
 							class="category-pill text-sm px-3 py-1 rounded-lg whitespace-nowrap
 								   transition-colors duration-200 flex items-center justify-center"
-							data-category-name={cat.name}
+							data-category-name={cat.key}
 						>
 							{cat.name}
 							<span class="text-xs opacity-60 ml-1">
@@ -132,6 +132,7 @@ const archiveUrl = localizedUrl("/archive/");
 </style>
 
 <script>
+	import { getTaxonomyLabel, resolveTaxonomyKey } from "@/data/post-taxonomy.mjs";
 	const archiveFilterKeys = ["tag", "category", "uncategorized"];
 
 	function getArchiveFilterParams() {
@@ -180,7 +181,7 @@ const archiveUrl = localizedUrl("/archive/");
 		// 高亮当前分类
 		const pills = bar.querySelectorAll<HTMLAnchorElement>(".category-pill");
 		const params = getArchiveFilterParams();
-		const activeCategory = params.get("category") || "";
+		const activeCategory = resolveTaxonomyKey("categories", params.get("category"));
 		const hasTag = params.has("tag");
 		const hasUncategorized = params.has("uncategorized");
 
@@ -226,7 +227,7 @@ const archiveUrl = localizedUrl("/archive/");
 				".banner-page-title-text",
 			);
 			if (bannerTitle) {
-				bannerTitle.textContent = decodeURIComponent(activeCategory);
+				bannerTitle.textContent = getTaxonomyLabel("categories", activeCategory, document.documentElement.lang);
 			}
 		}
 	}

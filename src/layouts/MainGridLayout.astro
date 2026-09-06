@@ -1,4 +1,5 @@
 ---
+import { getCategoryLabel } from "@/utils/taxonomy-utils";
 import type { CollectionEntry } from "astro:content";
 import FloatingControls from "@components/control/FloatingControls.astro";
 import { SidebarTOC } from "@components/features/toc";
@@ -257,7 +258,7 @@ const canonicalPath = alternateLocalePaths[currentLocalePath];
 							id="page-overlay-data"
 							data-title={title || ""}
 							data-date={publishedDate ? formatDateToYYYYMMDD(publishedDate) : ""}
-							data-category={category || ""}
+							data-category={category ? getCategoryLabel(category) : ""}
 							data-words={wordCount ? String(wordCount) : ""}
 							data-is-post={postSlug ? "true" : "false"}
 							data-is-home={isHomePage ? "true" : "false"}

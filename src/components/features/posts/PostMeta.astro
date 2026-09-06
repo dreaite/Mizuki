@@ -5,6 +5,7 @@ import I18nKey from "../../../i18n/i18nKey";
 import { i18n } from "../../../i18n/translation";
 import { formatDateToYYYYMMDD } from "../../../utils/date-utils";
 import { getTagUrl } from "../../../utils/url-utils";
+import { getTagLabel } from "../../../utils/taxonomy-utils";
 import {
 	Category,
 	EncryptedBadge,
@@ -73,18 +74,18 @@ const {
     )}
 
     {!showOnlyBasicMeta && (
-        <div class:list={["items-center", {"flex": !hideTagsForMobile, "hidden md:flex": hideTagsForMobile}]}>
+        <div class:list={["items-center min-w-0 max-w-full", {"flex": !hideTagsForMobile, "hidden md:flex": hideTagsForMobile}]}>
             <div class="meta-icon">
                 <Icon name="material-symbols:tag-rounded" class="text-xl"></Icon>
             </div>
-            <div class="flex flex-row flex-nowrap items-center">
+            <div class="flex flex-row flex-wrap min-w-0 items-center gap-y-1">
                 {(tags && tags.length > 0) && tags.map((tag, i) => (
                     <>
                         <div class:list={[{"hidden": i == 0}, "mx-1.5 text-(--meta-divider) text-sm"]}>/</div>
-                        <a href={getTagUrl(tag)} data-no-swup aria-label={`View all posts with the ${tag.trim()} tag`}
+                        <a href={getTagUrl(tag)} data-no-swup aria-label={`View all posts with the ${getTagLabel(tag)} tag`}
                            class="link-lg transition text-50 text-sm font-medium
                                         hover:text-(--primary) dark:hover:text-(--primary) whitespace-nowrap">
-                            {tag.trim()}
+                            {getTagLabel(tag)}
                         </a>
                     </>
                 ))}

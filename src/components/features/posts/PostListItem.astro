@@ -5,6 +5,7 @@ import type { PostForList } from "@/utils/content-utils";
 import { formatDateToYYYYMMDD } from "@/utils/date-utils";
 import { getPostPublicDescription } from "@/utils/post-card-content";
 import { getPostUrl } from "@/utils/url-utils";
+import { getCategoryLabel } from "@/utils/taxonomy-utils";
 
 interface Props {
 	post: PostForList;
@@ -53,7 +54,7 @@ const displayDate =
 			{
 				showCategory && post.data.category && (
 					<span class="shrink-0 self-end px-1.5 py-0.5 rounded bg-(--btn-regular-bg) text-(--btn-content)">
-						{post.data.category}
+						{getCategoryLabel(post.data.category)}
 					</span>
 				)
 			}

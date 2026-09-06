@@ -3,11 +3,13 @@ import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import { onMount } from "svelte";
 import type { ArchivePanelProps, Group, Post } from "./types";
+import { getTaxonomyLabel, resolveTaxonomyKey } from "@/data/post-taxonomy.mjs";
 
 let {
 	tags = $bindable([]),
 	categories = $bindable([]),
 	sortedPosts = [],
+	language = "zh_CN",
 }: ArchivePanelProps = $props();
 
 let groups = $state<Group[]>([]);
@@ -21,7 +23,9 @@ function formatDate(date: Date) {
 }
 
 function formatTag(tagList: string[]) {
-	return tagList.map((t) => `#${t}`).join(" ");
+	return tagList
+		.map((t) => `#${getTaxonomyLabel("tags", t, language)}`)
+		.join(" ");
 }
 
 function hasArchiveFilter(params: URLSearchParams) {
@@ -61,8 +65,10 @@ function migrateLegacyQueryFilters() {
 
 function updateGroups() {
 	const params = getArchiveFilterParams();
-	tags = params.getAll("tag");
-	categories = params.getAll("category");
+	tags = params.getAll("tag").map((tag) => resolveTaxonomyKey("tags", tag));
+	categories = params
+		.getAll("category")
+		.map((category) => resolveTaxonomyKey("categories", category));
 	const uncategorized = params.get("uncategorized");
 	let filteredPosts: Post[] = sortedPosts;
 

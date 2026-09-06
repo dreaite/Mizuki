@@ -12,6 +12,7 @@ import { getSortedPosts } from "@/utils/content-utils";
 import { resolvePostContentImageImportPath } from "@/utils/feed-image-utils";
 import { initPostIdMap } from "@/utils/permalink-utils";
 import { getPostPublicDescription } from "@/utils/post-card-content";
+import { getCategoryLabel } from "@/utils/taxonomy-utils";
 import { getPostUrlForLocale } from "@/utils/url-utils";
 
 const markdownParser = new MarkdownIt();
@@ -114,8 +115,14 @@ export async function GET(context: APIContext) {
 
 		// 添加分类标签
 		if (post.data.category) {
+			const escapeAttribute = (value: string) =>
+				value
+					.replaceAll("&", "&amp;")
+					.replaceAll('"', "&quot;")
+					.replaceAll("<", "&lt;")
+					.replaceAll(">", "&gt;");
 			atomFeed += `
-    <category term="${post.data.category}"></category>`;
+    <category term="${escapeAttribute(post.data.category)}" label="${escapeAttribute(getCategoryLabel(post.data.category, defaultLocale.lang))}"></category>`;
 		}
 
 		atomFeed += `
