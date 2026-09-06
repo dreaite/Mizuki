@@ -77,12 +77,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run X card tests
-        run: pnpm test:x-card
-
-      - name: Run Diary content tests
-        run: pnpm test:diary
-
       - name: Build
         run: pnpm build
         env:

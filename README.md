@@ -259,7 +259,6 @@ All commands are run from the project root:
 | `pnpm check`               | Run Astro error checking                   |
 | `pnpm format`              | Format code with Prettier                  |
 | `pnpm lint`                | Check and fix code issues                  |
-| `pnpm test:x-card`         | Run offline X card regression tests        |
 | `pnpm new-post <filename>` | Create a new blog post                     |
 | `pnpm astro ...`           | Run Astro CLI commands                     |
 
