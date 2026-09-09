@@ -20,6 +20,8 @@ const content = normalizeDiaryContent(moment.content);
 const previews = await Promise.all(
 	(moment.images ?? []).map((image) => getImagePreview(image)),
 );
+const needsHeicDecode = (image: string, index: number) =>
+	isHeicImage(image) && !previews[index].fullSrc;
 ---
 
 <div
@@ -50,14 +52,14 @@ const previews = await Promise.all(
 						<div class="relative rounded-lg overflow-hidden aspect-square cursor-pointer">
 							<a
 								href="javascript:void(0)"
-								data-src={image}
+								data-src={previews[imageIndex].fullSrc || image}
 								data-type="image"
 								data-fancybox={`diary-${index}`}
 								class="block w-full h-full"
 							>
 								<img
-									src={isHeicImage(image) ? HEIC_PLACEHOLDER : previews[imageIndex].src}
-									data-heic-src={isHeicImage(image) ? image : undefined}
+									src={needsHeicDecode(image, imageIndex) ? HEIC_PLACEHOLDER : previews[imageIndex].src}
+									data-heic-src={needsHeicDecode(image, imageIndex) ? image : undefined}
 									alt="diary moment image"
 									class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
 									loading="lazy"
