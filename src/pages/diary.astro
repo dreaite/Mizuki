@@ -162,17 +162,27 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 
 	{
 		diaryApiUrl && (
-			<script is:inline>
+			<script>
+                import { HEIC_PLACEHOLDER as heicPlaceholder, isHeicImage } from "../utils/heic";
+                import type { DiaryItem } from "../data/diary";
+                import type { Memo } from "../components/features/diary/moment-card.template";
+                type TimeLabels = { minutesAgo: string; hoursAgo: string; daysAgo: string };
+                const memosWindow = window as Window & {
+                    __diaryMemosSyncInstalled?: boolean;
+                    __renderDiaryMemos?: () => void;
+                    __initFilterTabs?: () => void;
+                };
 				(function () {
-					if (window.__diaryMemosSyncInstalled) {
-						if (window.__renderDiaryMemos) {
-							window.__renderDiaryMemos();
+					if (memosWindow.__diaryMemosSyncInstalled) {
+						if (memosWindow.__renderDiaryMemos) {
+							memosWindow.__renderDiaryMemos();
 						}
 						return;
 					}
-					window.__diaryMemosSyncInstalled = true;
+					memosWindow.__diaryMemosSyncInstalled = true;
 
-					function transformMemosToDiary(memos, baseUrl) {
+
+					function transformMemosToDiary(memos: Memo[], baseUrl: string) {
 						return memos
 							.filter(function (m) {
 								return (
@@ -209,7 +219,7 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 							});
 					}
 
-					function formatRelativeTime(dateString, labels) {
+					function formatRelativeTime(dateString: string, labels: TimeLabels) {
 						const date = new Date(dateString);
 						const diffInMinutes = Math.floor(
 			(Date.now() - date.getTime()) / (1000 * 60),
@@ -221,8 +231,8 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 						return Math.floor(diffInMinutes / 1440) + labels.daysAgo;
 					}
 
-					function escapeHtml(text) {
-						const map = {
+					function escapeHtml(text: string) {
+						const map: Record<string, string> = {
 			"&": "&amp;",
 			"<": "&lt;",
 			">": "&gt;",
@@ -234,20 +244,20 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 						});
 					}
 
-					function normalizeDiaryContent(value) {
+					function normalizeDiaryContent(value: string) {
 						return String(value || "")
 							.replace(/\r\n?/g, "\n")
 							.replace(/<br\s*\/?>/gi, "\n");
 					}
 
-					function getImageLayoutClass(count) {
+					function getImageLayoutClass(count: number) {
 						if (count === 1) {return "diary-images-single";}
 						if (count === 2) {return "diary-images-double";}
 						if (count === 3) {return "diary-images-triple";}
 						return "diary-images-grid";
 					}
 
-					function renderMomentCards(moments, labels) {
+					function renderMomentCards(moments: DiaryItem[], labels: TimeLabels) {
 						return moments
 							.map(function (moment, index) {
 								const relativeTime = formatRelativeTime(moment.date, labels);
@@ -258,16 +268,18 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 									const layoutClass = getImageLayoutClass(moment.images.length);
 									const imgs = moment.images
 						.map(function (img) {
+							const heic = isHeicImage(img);
 							return (
 								'<div class="relative rounded-lg overflow-hidden aspect-square cursor-pointer">' +
 								'<a href="javascript:void(0)" data-src="' +
 								escapeHtml(img) +
-								'" data-fancybox="diary-' +
+								'" data-type="image" data-fancybox="diary-' +
 								index +
 								'" class="block w-full h-full">' +
 								'<img src="' +
-								escapeHtml(img) +
-								'" alt="diary moment image" class="w-full h-full object-cover transition-transform duration-300 hover:scale-105" loading="lazy" decoding="async" />' +
+								escapeHtml(heic ? heicPlaceholder : img) +
+								'" ' + (heic ? 'data-heic-src="' + escapeHtml(img) + '" ' : '') +
+								'alt="diary moment image" class="w-full h-full object-cover transition-transform duration-300 hover:scale-105" loading="lazy" decoding="async" />' +
 								"</a></div>"
 							);
 						})
@@ -335,7 +347,7 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 							.join("");
 					}
 
-					function rebuildFilterTabs(moments) {
+					function rebuildFilterTabs(moments: DiaryItem[]) {
 						let filterContainer = document.querySelector(".filter-tabs");
 						if (!filterContainer) {
 							// No filter tabs in static render — need to create the container
@@ -346,8 +358,8 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 							contentArea.insertBefore(filterContainer, contentArea.firstChild);
 						}
 
-						const allTags = [];
-						const seen = {};
+						const allTags: string[] = [];
+						const seen: Record<string, boolean> = {};
 						moments.forEach(function (m) {
 							(m.tags || []).forEach(function (t) {
 								if (!seen[t]) {
@@ -399,13 +411,13 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 						// Re-init filter handler
 						if (
 							typeof window !== "undefined" &&
-							window.__initFilterTabs
+							memosWindow.__initFilterTabs
 						) {
-							window.__initFilterTabs();
+							memosWindow.__initFilterTabs();
 						}
 					}
 
-					function updateCountDisplay(count) {
+					function updateCountDisplay(count: number) {
 						const countEl = document.querySelector(
 			".card-base .shrink-0 .text-2xl",
 		);
@@ -460,7 +472,7 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 							});
 					}
 
-					window.__renderDiaryMemos = fetchAndRender;
+					memosWindow.__renderDiaryMemos = fetchAndRender;
 
 					// IIFE: run immediately (handles Swup pre-render case)
 					fetchAndRender();

@@ -2,6 +2,7 @@
 import { Icon } from "astro-icon/components";
 
 import { normalizeDiaryContent } from "../../../utils/diary-content.mjs";
+import { HEIC_PLACEHOLDER, isHeicImage } from "../../../utils/heic";
 import { formatRelativeTime } from "../../../utils/timeFormat";
 import type { MomentCardProps } from "./types";
 
@@ -46,11 +47,13 @@ const content = normalizeDiaryContent(moment.content);
 							<a
 								href="javascript:void(0)"
 								data-src={image}
+								data-type="image"
 								data-fancybox={`diary-${index}`}
 								class="block w-full h-full"
 							>
 								<img
-									src={image}
+									src={isHeicImage(image) ? HEIC_PLACEHOLDER : image}
+									data-heic-src={isHeicImage(image) ? image : undefined}
 									alt="diary moment image"
 									class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
 									loading="lazy"

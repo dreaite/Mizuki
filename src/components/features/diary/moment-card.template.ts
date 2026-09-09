@@ -3,6 +3,7 @@
 
 import type { DiaryItem } from "../../../data/diary";
 import { normalizeDiaryContent } from "../../../utils/diary-content.mjs";
+import { HEIC_PLACEHOLDER, isHeicImage } from "../../../utils/heic";
 
 // --- Memos API 响应类型 ---
 
@@ -147,8 +148,8 @@ function renderMomentCard(
 			.map(
 				(img) => `
 				<div class="relative rounded-lg overflow-hidden aspect-square cursor-pointer">
-					<a href="javascript:void(0)" data-src="${escapeHtml(img)}" data-fancybox="diary-${index}" class="block w-full h-full">
-						<img src="${escapeHtml(img)}" alt="diary moment image" class="w-full h-full object-cover transition-transform duration-300 hover:scale-105" loading="lazy" decoding="async" />
+					<a href="javascript:void(0)" data-src="${escapeHtml(img)}" data-type="image" data-fancybox="diary-${index}" class="block w-full h-full">
+						<img src="${escapeHtml(isHeicImage(img) ? HEIC_PLACEHOLDER : img)}" ${isHeicImage(img) ? `data-heic-src="${escapeHtml(img)}"` : ""} alt="diary moment image" class="w-full h-full object-cover transition-transform duration-300 hover:scale-105" loading="lazy" decoding="async" />
 					</a>
 				</div>`,
 			)

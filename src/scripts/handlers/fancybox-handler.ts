@@ -20,15 +20,24 @@ export class FancyboxHandler {
 	private Fancybox: FancyboxType | null = null;
 	private boundSelectors: string[] = [];
 	private initialized = false;
+	private heicCleanup: (() => void) | undefined;
+	private generation = 0;
 
 	/**
 	 * 初始化 Fancybox
 	 * 按需加载 Fancybox 模块和样式
 	 */
 	async init(): Promise<void> {
+		const generation = this.generation;
+		const diary = document.getElementById("diary-list");
+		if (diary && !this.heicCleanup) {
+			const { initHeicImages } = await import("../../utils/heic");
+			if (generation !== this.generation) return;
+			this.heicCleanup ??= initHeicImages(diary);
+		}
 		const hasImages = this.checkForImages();
 
-		if (!hasImages) {
+		if (!hasImages && !diary) {
 			return;
 		}
 
@@ -36,6 +45,7 @@ export class FancyboxHandler {
 		if (!this.Fancybox) {
 			await this.loadFancybox();
 		}
+		if (generation !== this.generation) return;
 
 		// 避免重复初始化
 		if (this.boundSelectors.length > 0) {
@@ -123,7 +133,9 @@ export class FancyboxHandler {
 	 * 创建相册/文章图片配置
 	 * 保留默认 Carousel 插件配置，避免覆盖旋转工具栏
 	 */
-	private createAlbumImagesConfig(commonConfig: FancyboxConfig): FancyboxConfig {
+	private createAlbumImagesConfig(
+		commonConfig: FancyboxConfig,
+	): FancyboxConfig {
 		const carouselConfig = commonConfig.Carousel ?? {};
 		const lazyloadConfig = carouselConfig.Lazyload;
 
@@ -146,6 +158,9 @@ export class FancyboxHandler {
 	 * 在页面切换前调用
 	 */
 	cleanup(): void {
+		this.generation += 1;
+		this.heicCleanup?.();
+		this.heicCleanup = undefined;
 		if (!this.Fancybox) {
 			return;
 		}
