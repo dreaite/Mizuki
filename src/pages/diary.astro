@@ -257,15 +257,13 @@ const subtitle = i18n(I18nKey.diarySubtitle);
 								if (moment.images && moment.images.length > 0) {
 									const layoutClass = getImageLayoutClass(moment.images.length);
 									const imgs = moment.images
-						.map(function (img, i) {
+						.map(function (img) {
 							return (
 								'<div class="relative rounded-lg overflow-hidden aspect-square cursor-pointer">' +
 								'<a href="javascript:void(0)" data-src="' +
 								escapeHtml(img) +
 								'" data-fancybox="diary-' +
 								index +
-								"-" +
-								i +
 								'" class="block w-full h-full">' +
 								'<img src="' +
 								escapeHtml(img) +

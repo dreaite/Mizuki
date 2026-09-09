@@ -221,7 +221,10 @@ export const FANCYBOX_SELECTORS = {
 	// 相册链接
 	albumLinks: ".moment-images a[data-fancybox]",
 
+	// 日记按篇分组，画作沿用 artworks 分组，使用简洁预览控件
+	diaryAndArtworks: '.diary-images [data-fancybox], [data-fancybox="artworks"]',
+
 	// 单独的 fancybox 图片
 	singleFancybox:
-		"[data-fancybox]:not(.moment-images a):not(.image-grid [data-fancybox])",
+		'[data-fancybox]:not(.moment-images a):not(.image-grid [data-fancybox]):not(.diary-images [data-fancybox]):not([data-fancybox="artworks"])',
 } as const;

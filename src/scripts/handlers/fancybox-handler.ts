@@ -54,6 +54,7 @@ export class FancyboxHandler {
 			document.querySelector(FANCYBOX_SELECTORS.albumImages) !== null ||
 			document.querySelector(FANCYBOX_SELECTORS.imageGrids) !== null ||
 			document.querySelector(FANCYBOX_SELECTORS.albumLinks) !== null ||
+			document.querySelector(FANCYBOX_SELECTORS.diaryAndArtworks) !== null ||
 			document.querySelector(FANCYBOX_SELECTORS.singleFancybox) !== null
 		);
 	}
@@ -100,6 +101,22 @@ export class FancyboxHandler {
 		// 绑定单独的 fancybox 图片
 		this.Fancybox.bind(FANCYBOX_SELECTORS.singleFancybox, commonConfig);
 		this.boundSelectors.push(FANCYBOX_SELECTORS.singleFancybox);
+
+		// 顶部只保留关闭按钮；底部缩略图和左右切换继续可用。
+		this.Fancybox.bind(FANCYBOX_SELECTORS.diaryAndArtworks, {
+			...commonConfig,
+			backdropClick: "close",
+			closeButton: false,
+			idle: false,
+			Carousel: {
+				...commonConfig.Carousel,
+				Thumbs: { type: "classic", showOnStart: true, minCount: 2 },
+				Toolbar: {
+					display: { left: [], middle: [], right: ["close"] },
+				},
+			},
+		} satisfies FancyboxConfig);
+		this.boundSelectors.push(FANCYBOX_SELECTORS.diaryAndArtworks);
 	}
 
 	/**
