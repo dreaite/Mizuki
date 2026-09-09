@@ -1,7 +1,6 @@
 ---
 import type { Artwork } from "../../../types/gallery";
 import { getImagePreview } from "../../../utils/image-preview.mjs";
-import { url } from "../../../utils/url-utils";
 
 interface Props {
 	artwork: Artwork;
@@ -36,7 +35,7 @@ const preview = await getImagePreview(artwork.thumbnail ?? artwork.src);
 		aria-haspopup="dialog"
 	>
 		<img
-			src={preview.src.startsWith("/") && !preview.src.startsWith("//") ? url(preview.src) : preview.src}
+			src={preview.src}
 			alt={artwork.alt}
 			width={preview.width ?? artwork.width}
 			height={preview.height ?? artwork.height}

@@ -1,6 +1,5 @@
 ---
 import { getImagePreview } from "../../../utils/image-preview.mjs";
-import { url } from "../../../utils/url-utils";
 import type { PhotoCardProps } from "./types";
 
 const { src, alt = "", albumId } = Astro.props as PhotoCardProps;
@@ -15,7 +14,7 @@ const preview = await getImagePreview(src);
 		class="block rounded-xl overflow-hidden group cursor-pointer"
 	>
 		<img
-			src={preview.src !== src ? url(preview.src) : src}
+			src={preview.src}
 			width={preview.width}
 			height={preview.height}
 			alt={alt}

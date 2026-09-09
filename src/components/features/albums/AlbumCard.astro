@@ -3,7 +3,6 @@ import { i18n } from "@i18n/translation";
 import { Icon } from "astro-icon/components";
 import I18nKey from "../../../i18n/i18nKey";
 import { getImagePreview } from "../../../utils/image-preview.mjs";
-import { url } from "../../../utils/url-utils";
 import type { AlbumCardProps } from "./types";
 
 const { album } = Astro.props as AlbumCardProps;
@@ -20,7 +19,7 @@ const preview = await getImagePreview(album.cover);
 		{
 			album.cover ? (
 				<img
-					src={preview.src !== album.cover ? url(preview.src) : album.cover}
+					src={preview.src}
 					width={preview.width}
 					height={preview.height}
 					alt={album.title}

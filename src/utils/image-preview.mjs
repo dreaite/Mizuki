@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { glob } from "glob";
 import sharp from "sharp";
+import remotePreviews from "../data/image-previews.json" with { type: "json" };
 
 export const PREVIEW_PATH = "/_image-previews/";
 export const previewDirectory = path.resolve(
@@ -11,37 +12,27 @@ export const previewDirectory = path.resolve(
 );
 const pending = new Map();
 
-async function download(src) {
-	const response = await fetch(src, { signal: AbortSignal.timeout(15000) });
-	if (!response.ok) throw new Error(`HTTP ${response.status}`);
-	return Buffer.from(await response.arrayBuffer());
-}
-
 /** Server-only: create a separate JPEG; the caller keeps the original link. */
 export async function getImagePreview(src, { basePath = "/" } = {}) {
 	if (!src || /^(?:data:|blob:)/i.test(src)) return { src };
-	const remote = /^https?:\/\//i.test(src) || src.startsWith("//");
-	let source = src;
-	let version = src;
+	if (/^https?:\/\//i.test(src) || src.startsWith("//")) {
+		return remotePreviews[src] ?? { src };
+	}
 	try {
-		if (remote) {
-			source = new URL(src, "https://localhost").href;
-		} else {
-			const pathname = decodeURIComponent(src.split(/[?#]/)[0]);
-			const directory = path.resolve(
-				process.cwd(),
-				src.startsWith("/") ? "public" : "src",
-			);
-			source = path.resolve(
-				directory,
-				...(src.startsWith("/") ? [] : [basePath.replace(/^\/+/, "")]),
-				pathname.replace(/^\/+/, ""),
-			);
-			if (!source.startsWith(`${directory}${path.sep}`))
-				throw new Error("Image path escapes its root");
-			const info = await stat(source);
-			version = `${info.mtimeMs}:${info.size}`;
-		}
+		const pathname = decodeURIComponent(src.split(/[?#]/)[0]);
+		const directory = path.resolve(
+			process.cwd(),
+			src.startsWith("/") ? "public" : "src",
+		);
+		const source = path.resolve(
+			directory,
+			...(src.startsWith("/") ? [] : [basePath.replace(/^\/+/, "")]),
+			pathname.replace(/^\/+/, ""),
+		);
+		if (!source.startsWith(`${directory}${path.sep}`))
+			throw new Error("Image path escapes its root");
+		const info = await stat(source);
+		const version = `${info.mtimeMs}:${info.size}`;
 		// SVGs stay vectors; HEIC keeps the existing browser conversion flow.
 		if (/\.(?:svg|heic|heif)(?:[?#]|$)/i.test(source)) return { src };
 		const key = `${source}:${version}`;
@@ -49,9 +40,7 @@ export async function getImagePreview(src, { basePath = "/" } = {}) {
 			pending.set(
 				key,
 				(async () => {
-					const input = remote
-						? await download(source)
-						: await readFile(source);
+					const input = await readFile(source);
 					const hash = createHash("sha256")
 						.update("jpeg-preview-v1-800-70")
 						.update(input)
@@ -79,12 +68,12 @@ export async function getImagePreview(src, { basePath = "/" } = {}) {
 						metadata = result.info;
 					}
 					return {
-						src: `${PREVIEW_PATH}${filename}`,
+						src: `${(import.meta.env?.BASE_URL ?? "/").replace(/\/$/, "")}${PREVIEW_PATH}${filename}`,
 						width: metadata.width,
 						height: metadata.height,
 					};
 				})().catch((error) => {
-					// A failed external host must not break the site build.
+					// Keep the original URL if a local image cannot be converted.
 					console.warn(
 						`[image-preview] Using original image: ${error.message}`,
 					);

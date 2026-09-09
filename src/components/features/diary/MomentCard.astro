@@ -5,7 +5,6 @@ import { normalizeDiaryContent } from "../../../utils/diary-content.mjs";
 import { HEIC_PLACEHOLDER, isHeicImage } from "../../../utils/heic";
 import { getImagePreview } from "../../../utils/image-preview.mjs";
 import { formatRelativeTime } from "../../../utils/timeFormat";
-import { url } from "../../../utils/url-utils";
 import type { MomentCardProps } from "./types";
 
 const { moment, index, minutesAgo, hoursAgo, daysAgo } =
@@ -57,7 +56,7 @@ const previews = await Promise.all(
 								class="block w-full h-full"
 							>
 								<img
-									src={isHeicImage(image) ? HEIC_PLACEHOLDER : previews[imageIndex].src !== image ? url(previews[imageIndex].src) : image}
+									src={isHeicImage(image) ? HEIC_PLACEHOLDER : previews[imageIndex].src}
 									data-heic-src={isHeicImage(image) ? image : undefined}
 									alt="diary moment image"
 									class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"

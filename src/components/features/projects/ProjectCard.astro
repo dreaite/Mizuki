@@ -3,12 +3,16 @@ import { Icon } from "astro-icon/components";
 
 import I18nKey from "../../../i18n/i18nKey";
 import { i18n } from "../../../i18n/translation";
+import { getImagePreview } from "../../../utils/image-preview.mjs";
 import type { ProjectCardProps } from "./types";
 
 const { project, maxTechStack = 4 } = Astro.props as ProjectCardProps;
 
 const hasImage = !!project.image;
 const showImageArea = project.showImage !== false && hasImage;
+const preview = showImageArea
+	? await getImagePreview(project.image)
+	: undefined;
 const liveDemoUrl = project.visitUrl || project.liveDemo || project.demoUrl;
 const sourceCodeUrl = project.sourceCode || project.sourceUrl;
 const hasLiveDemo = !!liveDemoUrl;
@@ -37,7 +41,9 @@ const getStatusText = (status: string) => {
 			<div class="aspect-video overflow-hidden relative bg-linear-to-br from-(--primary)/5 to-(--primary)/10">
 				{hasImage ? (
 					<img
-						src={project.image!}
+						src={preview?.src || project.image!}
+						width={preview?.width}
+						height={preview?.height}
 						alt={project.title}
 						class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
 						loading="lazy"
