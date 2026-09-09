@@ -3,7 +3,9 @@ import { Icon } from "astro-icon/components";
 
 import { normalizeDiaryContent } from "../../../utils/diary-content.mjs";
 import { HEIC_PLACEHOLDER, isHeicImage } from "../../../utils/heic";
+import { getImagePreview } from "../../../utils/image-preview.mjs";
 import { formatRelativeTime } from "../../../utils/timeFormat";
+import { url } from "../../../utils/url-utils";
 import type { MomentCardProps } from "./types";
 
 const { moment, index, minutesAgo, hoursAgo, daysAgo } =
@@ -16,6 +18,9 @@ const relativeTime = formatRelativeTime(
 	daysAgo,
 );
 const content = normalizeDiaryContent(moment.content);
+const previews = await Promise.all(
+	(moment.images ?? []).map((image) => getImagePreview(image)),
+);
 ---
 
 <div
@@ -42,7 +47,7 @@ const content = normalizeDiaryContent(moment.content);
 						moment.images.length >= 4 && "diary-images-grid",
 					]}
 				>
-					{moment.images.map((image) => (
+					{moment.images.map((image, imageIndex) => (
 						<div class="relative rounded-lg overflow-hidden aspect-square cursor-pointer">
 							<a
 								href="javascript:void(0)"
@@ -52,7 +57,7 @@ const content = normalizeDiaryContent(moment.content);
 								class="block w-full h-full"
 							>
 								<img
-									src={isHeicImage(image) ? HEIC_PLACEHOLDER : image}
+									src={isHeicImage(image) ? HEIC_PLACEHOLDER : previews[imageIndex].src !== image ? url(previews[imageIndex].src) : image}
 									data-heic-src={isHeicImage(image) ? image : undefined}
 									alt="diary moment image"
 									class="w-full h-full object-cover transition-transform duration-300 hover:scale-105"

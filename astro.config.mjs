@@ -22,6 +22,7 @@ import remarkMath from "remark-math";
 import remarkSectionize from "remark-sectionize";
 import { siteConfig } from "./src/config/index.ts";
 import { buildIconInclude } from "./src/plugins/astro-icon-include.mjs";
+import { imagePreviews } from "./src/utils/image-preview.mjs";
 import { pluginCustomCopyButton } from "./src/plugins/expressive-code/custom-copy-button.js";
 import { pluginLanguageBadge } from "./src/plugins/expressive-code/language-badge.ts";
 import { AdmonitionComponent } from "./src/plugins/rehype-component-admonition.mjs";
@@ -193,6 +194,7 @@ export default defineConfig({
 	},
 
 	integrations: [
+		imagePreviews(),
 		oddmisc({
 			umami: {
 				shareUrl: false,

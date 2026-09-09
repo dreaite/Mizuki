@@ -2,6 +2,7 @@
 import { Image as AstroImage, Picture } from "astro:assets";
 import path from "node:path";
 import type { ImageFormat, ResponsiveImageLayout } from "../../../types/config";
+import { getImagePreview } from "../../../utils/image-preview.mjs";
 import {
 	getFallbackFormat,
 	getImageFormats,
@@ -27,6 +28,7 @@ interface Props {
 	widths?: number[];
 	sizes?: string;
 	quality?: number;
+	preview?: boolean;
 }
 
 const {
@@ -43,8 +45,13 @@ const {
 	widths,
 	sizes,
 	quality = getImageQuality(),
+	preview = false,
 } = Astro.props;
 const className = Astro.props.class;
+const previewImage = preview
+	? await getImagePreview(src, { basePath })
+	: undefined;
+const hasPreview = previewImage?.src !== src && !!previewImage?.src;
 
 const fallbackFormat = getFallbackFormat();
 
@@ -59,7 +66,7 @@ const isPublic = src.startsWith("/");
 // TODO temporary workaround for images dynamic import
 // https://github.com/withastro/astro/issues/3373
 let img: ImageMetadata | undefined;
-if (isLocal) {
+if (isLocal && !hasPreview) {
 	const files = import.meta.glob<ImageMetadata>("../../../**", {
 		import: "default",
 	});
@@ -94,6 +101,21 @@ const responsiveProps = {
 ---
 
 <div id={id} class:list={[className, "overflow-hidden relative"]}>
+	{
+		hasPreview && (
+			<img
+				src={url(previewImage.src)}
+				width={previewImage.width}
+				height={previewImage.height}
+				alt={alt || ""}
+				class={imageClass}
+				style={imageStyle}
+				loading={loading}
+				fetchpriority={fetchpriority}
+				decoding="async"
+			/>
+		)
+	}
 	<div
 		class="transition absolute inset-0 dark:bg-black/10 bg-opacity-50 pointer-events-none"
 	>
@@ -127,7 +149,7 @@ const responsiveProps = {
 		)
 	}
 	{
-		!isLocal && (
+		!hasPreview && !isLocal && (
 			<img
 				src={isPublic ? url(src) : src}
 				alt={alt || ""}

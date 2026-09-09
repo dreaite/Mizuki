@@ -1,5 +1,7 @@
 ---
 import type { Artwork } from "../../../types/gallery";
+import { getImagePreview } from "../../../utils/image-preview.mjs";
+import { url } from "../../../utils/url-utils";
 
 interface Props {
 	artwork: Artwork;
@@ -17,6 +19,7 @@ const {
 const caption = [artwork.title, formattedDate, artwork.description]
 	.filter(Boolean)
 	.join(" · ");
+const preview = await getImagePreview(artwork.thumbnail ?? artwork.src);
 ---
 
 <figure
@@ -33,10 +36,10 @@ const caption = [artwork.title, formattedDate, artwork.description]
 		aria-haspopup="dialog"
 	>
 		<img
-			src={artwork.thumbnail ?? artwork.src}
+			src={preview.src.startsWith("/") && !preview.src.startsWith("//") ? url(preview.src) : preview.src}
 			alt={artwork.alt}
-			width={artwork.width}
-			height={artwork.height}
+			width={preview.width ?? artwork.width}
+			height={preview.height ?? artwork.height}
 			loading={priority ? "eager" : "lazy"}
 			fetchpriority={priority ? "high" : "auto"}
 			decoding="async"

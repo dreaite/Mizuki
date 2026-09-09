@@ -2,9 +2,8 @@
 import { render } from "astro:content";
 import { getPostHomeContent } from "@utils/post-card-content";
 import { Icon } from "astro-icon/components";
-
-import { getFileDirFromPath, getPostUrl, getTagUrl } from "@/utils/url-utils";
 import { getTagLabel } from "@/utils/taxonomy-utils";
+import { getFileDirFromPath, getPostUrl, getTagUrl } from "@/utils/url-utils";
 
 import { siteConfig } from "../../../config";
 import I18nKey from "../../../i18n/i18nKey";
@@ -161,6 +160,7 @@ const homeContent = getPostHomeContent(
 					/>
 				</div>
 				<Image
+					preview
 					src={image}
 					basePath={getFileDirFromPath(entry.filePath || "")}
 					alt="Cover Image of the Post"
