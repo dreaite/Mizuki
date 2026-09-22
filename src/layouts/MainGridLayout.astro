@@ -1,7 +1,7 @@
 ---
-import { getCategoryLabel } from "@/utils/taxonomy-utils";
 import type { CollectionEntry } from "astro:content";
 import FloatingControls from "@components/control/FloatingControls.astro";
+import LanguageSuggestion from "@components/control/LanguageSuggestion.astro";
 import { SidebarTOC } from "@components/features/toc";
 import Banner from "@components/layout/Banner.astro";
 import RightSideBar from "@components/layout/RightSideBar.astro";
@@ -12,6 +12,7 @@ import Navbar from "@components/organisms/navigation/Navbar.astro";
 import SideBar from "@components/widgets/sidebar/SideBar.astro";
 import type { MarkdownHeading } from "astro";
 import { Icon } from "astro-icon/components";
+import { getCategoryLabel } from "@/utils/taxonomy-utils";
 
 import { fullscreenWallpaperConfig, siteConfig } from "../config";
 import {
@@ -266,6 +267,12 @@ const canonicalPath = alternateLocalePaths[currentLocalePath];
 							class="hidden"
 						>
 						</div>
+						{siteConfig.i18n?.enabled && (
+							<LanguageSuggestion
+								currentLocale={currentLocalePath}
+								alternateLocalePaths={alternateLocalePaths}
+							/>
+						)}
 						<slot />
 						<div
 							class="footer col-span-full onload-animation hidden lg:block"

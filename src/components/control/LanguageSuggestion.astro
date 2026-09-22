@@ -1,0 +1,175 @@
+---
+import { Icon } from "astro-icon/components";
+import { SUPPORTED_LOCALES } from "../../i18n/locale";
+import type { LocaleSwitchPathMap } from "../../utils/locale-switch-utils";
+
+interface Props {
+	currentLocale: string;
+	alternateLocalePaths: LocaleSwitchPathMap;
+}
+
+const { currentLocale, alternateLocalePaths } = Astro.props;
+const messages = {
+	cn: {
+		text: "当前页面提供中文版本。",
+		action: "切换到中文",
+		close: "关闭语言提示",
+	},
+	en: {
+		text: "This page is available in English.",
+		action: "Switch to English",
+		close: "Dismiss language suggestion",
+	},
+	jp: {
+		text: "このページは日本語でも読めます。",
+		action: "日本語に切り替える",
+		close: "言語の案内を閉じる",
+	},
+};
+---
+
+<language-suggestion hidden data-current-locale={currentLocale}>
+	{
+		SUPPORTED_LOCALES.map((locale) => (
+			<div
+				hidden
+				lang={locale.htmlLang}
+				data-language-suggestion-option={locale.path}
+				data-browser-language={locale.htmlLang.split("-")[0]}
+				class="suggestion-row"
+			>
+				<Icon name="material-symbols:translate" class="suggestion-icon" />
+				<div class="suggestion-content">
+					<p class="text-75">{messages[locale.path].text}</p>
+					<a
+						href={alternateLocalePaths[locale.path]}
+						data-no-swup
+						class="btn-regular rounded-lg px-3 py-2 text-sm font-medium"
+					>
+						{messages[locale.path].action}
+					</a>
+				</div>
+				<button
+					type="button"
+					class="btn-plain rounded-lg h-10 w-10 shrink-0"
+					aria-label={messages[locale.path].close}
+				>
+					<Icon name="material-symbols:close-rounded" class="text-xl" />
+				</button>
+			</div>
+		))
+	}
+</language-suggestion>
+
+<style>
+	language-suggestion {
+		display: block;
+		margin-bottom: 1rem;
+		padding: 0.75rem 1rem;
+		border-radius: var(--radius-large);
+		background: var(--card-bg);
+		border: 1px solid var(--btn-regular-bg);
+	}
+
+	language-suggestion[hidden],
+	.suggestion-row[hidden] {
+		display: none;
+	}
+
+	.suggestion-row,
+	.suggestion-content {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.suggestion-content {
+		flex: 1;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		font-size: 0.875rem;
+	}
+
+	.suggestion-icon {
+		flex-shrink: 0;
+		font-size: 1.5rem;
+		color: var(--primary);
+	}
+
+	a {
+		white-space: nowrap;
+	}
+</style>
+
+<script>
+	const storageKey = "language-suggestion-dismissed";
+	let dismissedLocale = "";
+	try {
+		dismissedLocale = localStorage.getItem(storageKey) || "";
+	} catch {
+		// Keep the choice for this visit when storage is unavailable.
+	}
+
+	class LanguageSuggestion extends HTMLElement {
+		preferredLocale = "";
+
+		connectedCallback() {
+			this.hidden = true;
+			const options = Array.from(
+				this.querySelectorAll<HTMLElement>("[data-language-suggestion-option]"),
+			);
+			for (const option of options) option.hidden = true;
+			const languages = navigator.languages.length
+				? navigator.languages
+				: [navigator.language];
+			const preferred = languages
+				.map((language) =>
+					options.find(
+						(option) =>
+							option.dataset.browserLanguage ===
+							language.toLowerCase().split(/[-_]/)[0],
+					),
+				)
+				.find(Boolean);
+			this.preferredLocale = preferred?.dataset.languageSuggestionOption || "";
+			const link = preferred?.querySelector("a");
+			if (
+				!preferred ||
+				!link?.hasAttribute("href") ||
+				this.preferredLocale === this.dataset.currentLocale ||
+				this.preferredLocale === dismissedLocale
+			) {
+				return;
+			}
+
+			const target = new URL(link.href);
+			target.search = window.location.search;
+			target.hash = window.location.hash;
+			link.href = target.href;
+			preferred.hidden = false;
+			this.hidden = false;
+			link.onclick = () => this.dismiss();
+			preferred.querySelector("button")!.onclick = () => this.dismiss();
+		}
+
+		dismiss() {
+			this.hidden = true;
+			dismissedLocale = this.preferredLocale;
+			try {
+				localStorage.setItem(storageKey, dismissedLocale);
+			} catch {
+				// The in-memory choice still applies during client navigation.
+			}
+		}
+	}
+
+	customElements.define("language-suggestion", LanguageSuggestion);
+	document.addEventListener("click", (event) => {
+		if (
+			event.target instanceof Element &&
+			event.target.closest("[data-language-option], [data-floating-language-option]")
+		) {
+			document.querySelector<LanguageSuggestion>("language-suggestion")?.dismiss();
+		}
+	});
+</script>
