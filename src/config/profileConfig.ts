@@ -30,5 +30,10 @@ export const profileConfig: ProfileConfig = {
 			icon: "simple-icons:barmenia",
 			url: "https://bgm.tv/user/lagos",
 		},
+		{
+			name: "Email",
+			icon: "fa7-solid:envelope",
+			url: "mailto:dreaifehe@gmail.com",
+		},
 	],
 };
